@@ -360,3 +360,13 @@ struct QualityTests {
         #expect(post.contains("A new feature is new, not a fix"))
     }
 }
+
+@Suite("Pitch upgrade")
+struct PitchUpgradeTests {
+    @Test func oldDefaultPitchesAreSharpened() throws {
+        let old = #"{"products":[{"id":"6F9619FF-8B86-D011-B42D-00C04FC964FF","name":"StreamSpike","pitch":"Mac app in development that finds chat spikes in a Twitch or YouTube VOD and shows what the streamer said at that moment"},{"id":"7F9619FF-8B86-D011-B42D-00C04FC964FF","name":"Mine","pitch":"my own words"}]}"#
+        let persona = try JSONDecoder().decode(Persona.self, from: Data(old.utf8))
+        #expect(persona.products[0].pitch.contains("it does not make clips"))
+        #expect(persona.products[1].pitch == "my own words")
+    }
+}

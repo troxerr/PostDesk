@@ -173,7 +173,7 @@ public struct Persona: Codable, Hashable, Sendable {
         name = try c.decodeIfPresent(String.self, forKey: .name) ?? base.name
         handle = try c.decodeIfPresent(String.self, forKey: .handle) ?? base.handle
         bio = try c.decodeIfPresent(String.self, forKey: .bio) ?? base.bio
-        products = try c.decodeIfPresent([Product].self, forKey: .products) ?? base.products
+        products = (try c.decodeIfPresent([Product].self, forKey: .products) ?? base.products).map(Self.upgradedPitch)
         keywords = try c.decodeIfPresent([String].self, forKey: .keywords) ?? base.keywords
         searchQueries = try c.decodeIfPresent([String].self, forKey: .searchQueries) ?? base.searchQueries
         repoPaths = try c.decodeIfPresent([String].self, forKey: .repoPaths) ?? base.repoPaths
@@ -184,6 +184,21 @@ public struct Persona: Codable, Hashable, Sendable {
         postsPerWeek = try c.decodeIfPresent(Int.self, forKey: .postsPerWeek) ?? base.postsPerWeek
         commitDays = try c.decodeIfPresent(Int.self, forKey: .commitDays) ?? base.commitDays
         minLead = try c.decodeIfPresent(Int.self, forKey: .minLead) ?? base.minLead
+    }
+
+    /// The first version's built-in pitches let Claude mix the two products up.
+    /// A pitch still word for word the old default gets the sharper one; edited pitches stay.
+    static let oldPitches = [
+        "watches Twitch chat while you stream and saves the moments chat reacts to as 9:16 vertical clips; Windows app, 3 free clips a week, $39 once",
+        "Mac app in development that finds chat spikes in a Twitch or YouTube VOD and shows what the streamer said at that moment",
+    ]
+
+    static func upgradedPitch(_ product: Product) -> Product {
+        guard oldPitches.contains(product.pitch),
+              let new = Persona.astLabs.products.first(where: { $0.name == product.name }) else { return product }
+        var product = product
+        product.pitch = new.pitch
+        return product
     }
 
     /// The tone and your own rules, as lines for a system prompt.
