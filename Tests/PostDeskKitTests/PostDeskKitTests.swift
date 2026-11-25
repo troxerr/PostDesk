@@ -408,3 +408,23 @@ struct LinksOnlyTests {
         }
     }
 }
+
+@Suite("Pasted links")
+struct PastedLinksTests {
+    @Test func severalBareLinksAreNotOnePost() {
+        let text = "https://x.com/a/status/1\nhttps://x.com/b/status/2\nhttps://x.com/c/status/3"
+        #expect(InboxParser.parse(text).isEmpty)
+        #expect(InboxParser.bareLinks(in: text).count == 3)
+    }
+
+    @Test func linksInsideAPostsTextStayText() {
+        let text = "https://x.com/a/status/1\nby @a\nSee https://x.com/b/status/2 for the thread"
+        #expect(InboxParser.parse(text).count == 1)
+        #expect(InboxParser.bareLinks(in: text).isEmpty)
+    }
+
+    @Test func endOfObjectIsCut() {
+        #expect(ReplyDrafter.trimmed(#"Shows what you said there."}"#) == "Shows what you said there.")
+        #expect(ReplyDrafter.trimmed(#"He said "go"."#) == #"He said "go"."#)
+    }
+}

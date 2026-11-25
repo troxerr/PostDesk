@@ -63,7 +63,7 @@ struct MenuBarContent: View {
         }
         .disabled(model.isBusy)
         Divider()
-        Text("\(model.openReplyCount) replies and \(model.openPostCount) posts to go")
+        Text("\(model.openReplyCount) \(model.openReplyCount == 1 ? "reply" : "replies") and \(model.openPostCount) \(model.openPostCount == 1 ? "post" : "posts") to go")
         Button("Open PostDesk") { show() }
         Divider()
         Button("Quit PostDesk") { NSApplication.shared.terminate(nil) }

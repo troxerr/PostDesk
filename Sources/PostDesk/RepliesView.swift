@@ -92,9 +92,7 @@ struct ReplyRow: View {
                 .foregroundStyle(.secondary)
                 .lineLimit(5)
                 .textSelection(.enabled)
-            TextField("Reply", text: Binding(get: { draft.reply }, set: { model.setReplyText(draft.id, $0) }), axis: .vertical)
-                .textFieldStyle(.roundedBorder)
-                .lineLimit(2...6)
+            DraftEditor(text: Binding(get: { draft.reply }, set: { model.setReplyText(draft.id, $0) }), minHeight: 72)
             HStack(spacing: Space.sm) {
                 Text("\(draft.reply.count)/\(ReplyDrafter.maxReplyLength)")
                     .monospacedDigit()
@@ -141,6 +139,22 @@ struct SkippedRow: View {
         }
         .font(.callout)
         .padding(.vertical, Space.xs)
+    }
+}
+
+/// A text box that shows the whole draft. TextField in a List row stays one line high.
+struct DraftEditor: View {
+    @Binding var text: String
+    var minHeight: CGFloat
+
+    var body: some View {
+        TextEditor(text: $text)
+            .font(.body)
+            .scrollContentBackground(.hidden)
+            .padding(Space.xs)
+            .frame(minHeight: minHeight)
+            .background(.background, in: RoundedRectangle(cornerRadius: 6, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: 6, style: .continuous).strokeBorder(.separator, lineWidth: 1))
     }
 }
 

@@ -67,9 +67,7 @@ struct PostRow: View {
                 Spacer()
                 StatusBadge(status: draft.status)
             }
-            TextField("Post", text: Binding(get: { draft.text }, set: { model.setPostText(draft.id, $0) }), axis: .vertical)
-                .textFieldStyle(.roundedBorder)
-                .lineLimit(3...8)
+            DraftEditor(text: Binding(get: { draft.text }, set: { model.setPostText(draft.id, $0) }), minHeight: 96)
             ForEach(draft.problems, id: \.self) { problem in
                 Label(problem, systemImage: "exclamationmark.circle")
                     .foregroundStyle(.secondary)
