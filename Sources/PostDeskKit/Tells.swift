@@ -26,6 +26,8 @@ public enum Tells {
             text.contains(/^[A-Z][A-Za-z' ]{3,40} (beats?|wins over|is the best) [A-Za-z' ]{3,30}\./))
         add("an effort claim the commits may not support", if:
             text.contains(/\btook (me )?(a few|several|a couple( of)?|\d+|weeks|days)\b[^.]{0,25}\b(days|weeks|months|hours|nights)\b/.ignoresCase()))
+        add("an effort claim the commits may not support", if:
+            text.contains(/\b(spent|put in) (part of |a (lot|bit) of |some )?(this|the) (week|weekend|day|month)\b/.ignoresCase()))
         add("emoji", if: text.unicodeScalars.contains { $0.properties.isEmojiPresentation })
         return found
     }

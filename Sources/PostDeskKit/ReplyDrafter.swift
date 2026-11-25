@@ -81,6 +81,12 @@ public struct ReplyDrafter: Sendable {
             reply = String(reply[..<end.lowerBound])
         }
         reply = reply.replacing(/[ ]{2,}/, with: " ")
+        // A lone closing quote left over from the JSON string.
+        let trimmedEnd = reply.trimmingCharacters(in: .whitespacesAndNewlines)
+        if let last = trimmedEnd.last, "\"'\u{2019}\u{201D}".contains(last),
+           trimmedEnd.filter({ $0 == last }).count % 2 == 1, trimmedEnd.dropLast().last.map({ ".!?".contains($0) }) == true {
+            reply = String(trimmedEnd.dropLast())
+        }
         // …or markup copied from an embedded post, like `<br>` or `</br>`.
         reply = reply.replacing(/<\/?[A-Za-z][^>]*>/, with: "")
         return reply
