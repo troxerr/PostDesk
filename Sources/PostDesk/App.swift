@@ -12,6 +12,7 @@ struct PostDeskApp: App {
     var body: some Scene {
         Window("PostDesk", id: "main") {
             ContentView(model: model)
+                .themed()
                 .noInitialFocus()
                 .frame(minWidth: 760, minHeight: 520)
         }
@@ -21,6 +22,7 @@ struct PostDeskApp: App {
 
         Settings {
             SettingsView(model: model)
+                .themed()
                 .noInitialFocus()
         }
     }

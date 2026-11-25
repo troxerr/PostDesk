@@ -99,6 +99,29 @@ public struct Product: Codable, Hashable, Sendable, Identifiable {
     }
 }
 
+public enum Tone: String, Codable, CaseIterable, Sendable, Identifiable {
+    case friendly, direct, technical, playful
+    public var id: String { rawValue }
+
+    public var title: String {
+        switch self {
+        case .friendly: "Friendly"
+        case .direct: "Direct"
+        case .technical: "Technical"
+        case .playful: "Playful"
+        }
+    }
+
+    var instruction: String {
+        switch self {
+        case .friendly: "warm and helpful, like a fellow creator who has been there."
+        case .direct: "short and to the point. Lead with the answer, no warm-up."
+        case .technical: "precise and specific. Name the tool, the setting, or the number."
+        case .playful: "light and a little funny, but still useful. Never mocking."
+        }
+    }
+}
+
 /// Who the drafts speak for, and where the facts come from.
 public struct Persona: Codable, Hashable, Sendable {
     public var name: String
@@ -113,10 +136,18 @@ public struct Persona: Codable, Hashable, Sendable {
     public var repoPaths: [String]
     public var model: String
     public var dailyMax: Int
+    /// How the drafts sound.
+    public var tone: Tone
+    /// Anything else Claude should follow, in your words ("never mention prices").
+    public var extraInstructions: String
+    public var postsPerWeek: Int
+    /// How many days of commits the weekly posts read.
+    public var commitDays: Int
 
     public init(name: String, handle: String, bio: String, products: [Product], keywords: [String],
                 searchQueries: [String], repoPaths: [String], model: String = ClaudeClient.defaultModel,
-                dailyMax: Int = 10) {
+                dailyMax: Int = 10, tone: Tone = .friendly, extraInstructions: String = "",
+                postsPerWeek: Int = 5, commitDays: Int = 7) {
         self.name = name
         self.handle = handle
         self.bio = bio
@@ -126,6 +157,37 @@ public struct Persona: Codable, Hashable, Sendable {
         self.repoPaths = repoPaths
         self.model = model
         self.dailyMax = dailyMax
+        self.tone = tone
+        self.extraInstructions = extraInstructions
+        self.postsPerWeek = postsPerWeek
+        self.commitDays = commitDays
+    }
+
+    /// Settings saved by an older version are missing the newer keys: fill those with defaults.
+    public init(from decoder: any Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        let base = Persona.astLabs
+        name = try c.decodeIfPresent(String.self, forKey: .name) ?? base.name
+        handle = try c.decodeIfPresent(String.self, forKey: .handle) ?? base.handle
+        bio = try c.decodeIfPresent(String.self, forKey: .bio) ?? base.bio
+        products = try c.decodeIfPresent([Product].self, forKey: .products) ?? base.products
+        keywords = try c.decodeIfPresent([String].self, forKey: .keywords) ?? base.keywords
+        searchQueries = try c.decodeIfPresent([String].self, forKey: .searchQueries) ?? base.searchQueries
+        repoPaths = try c.decodeIfPresent([String].self, forKey: .repoPaths) ?? base.repoPaths
+        model = try c.decodeIfPresent(String.self, forKey: .model) ?? base.model
+        dailyMax = try c.decodeIfPresent(Int.self, forKey: .dailyMax) ?? base.dailyMax
+        tone = try c.decodeIfPresent(Tone.self, forKey: .tone) ?? base.tone
+        extraInstructions = try c.decodeIfPresent(String.self, forKey: .extraInstructions) ?? base.extraInstructions
+        postsPerWeek = try c.decodeIfPresent(Int.self, forKey: .postsPerWeek) ?? base.postsPerWeek
+        commitDays = try c.decodeIfPresent(Int.self, forKey: .commitDays) ?? base.commitDays
+    }
+
+    /// The tone and your own rules, as lines for a system prompt.
+    public var styleRules: String {
+        var lines = ["- Tone: \(tone.instruction)"]
+        let extra = extraInstructions.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !extra.isEmpty { lines.append("- The account owner's own rules, which win over the rest: \(extra)") }
+        return lines.joined(separator: "\n")
     }
 
     public static let astLabs = Persona(

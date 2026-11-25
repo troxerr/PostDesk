@@ -67,6 +67,7 @@ public struct ReplyDrafter: Sendable {
           no em dashes, no flattery openers, no asking for likes, follows or reposts.
         - If the post is off-topic, hostile, sensitive, or a reply would feel like an ad, set relevant to
           false and leave reply empty.
+        \(persona.styleRules)
 
         lead_score: 1-10, how likely this author is to need the products (streamer or clipper with a
         clipping problem scores high; a general tech post scores low).

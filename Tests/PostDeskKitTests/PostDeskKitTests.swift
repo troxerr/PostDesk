@@ -254,3 +254,39 @@ struct NoAutomationTests {
         }
     }
 }
+
+@Suite("Customization")
+struct CustomizationTests {
+    @Test func oldSettingsDecodeWithDefaults() throws {
+        let old = #"{"name":"Austin","handle":"@AST_Labs","bio":"dev","products":[],"keywords":["clip"],"searchQueries":[],"repoPaths":["/tmp/x"],"model":"claude-opus-5-5","dailyMax":4}"#
+        let persona = try JSONDecoder().decode(Persona.self, from: Data(old.utf8))
+        #expect(persona.dailyMax == 4)
+        #expect(persona.repoPaths == ["/tmp/x"])
+        #expect(persona.tone == .friendly)
+        #expect(persona.postsPerWeek == 5)
+        #expect(persona.commitDays == 7)
+    }
+
+    @Test func toneAndRulesReachBothPrompts() {
+        var persona = Persona.astLabs
+        persona.tone = .technical
+        persona.extraInstructions = "Never mention prices."
+        let reply = ReplyDrafter(client: ClaudeClient(apiKey: "k"), persona: persona).systemPrompt
+        let post = PostWriter(client: ClaudeClient(apiKey: "k"), persona: persona).systemPrompt
+        for prompt in [reply, post] {
+            #expect(prompt.contains("precise and specific"))
+            #expect(prompt.contains("Never mention prices."))
+        }
+        persona.extraInstructions = "  "
+        #expect(!persona.styleRules.contains("own rules"))
+    }
+
+    @Test func postsPerWeekSetsTheCount() async throws {
+        var persona = Persona.astLabs
+        persona.postsPerWeek = 3
+        let transport = FakeTransport(body: messageBody(#"{"posts":[]}"#))
+        _ = try await PostWriter(client: ClaudeClient(apiKey: "k", transport: transport), persona: persona)
+            .write(commits: [Commit(repo: "r", hash: "h", date: "d", subject: "s")])
+        #expect(String(decoding: transport.requests[0].httpBody!, as: UTF8.self).contains("Write 3 posts"))
+    }
+}

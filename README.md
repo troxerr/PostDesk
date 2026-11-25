@@ -16,6 +16,10 @@ PostDesk never posts, likes, follows, or sends DMs, and never drives the X websi
 1. `./build.sh --open` (needs Xcode or the Command Line Tools, Swift 6.2).
 2. Settings (Command-Comma) > Keys: your Anthropic API key. Optional: an X API bearer token for Fetch from X.
 3. Settings > Sources: add your repositories (StreamSpike, chat-clip, ...), and adjust keywords and searches.
+4. Settings > Writing: pick a tone (friendly, direct, technical, playful), add your own rules, and set how many posts a week.
+   Settings > Appearance: light, dark or automatic, and the accent color.
+
+`build.sh` installs to /Applications/PostDesk.app.
 
 ## Shortcuts
 

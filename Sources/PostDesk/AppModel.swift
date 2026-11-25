@@ -163,6 +163,7 @@ final class AppModel {
 
     func draftWeek() {
         let paths = persona.repoPaths
+        let days = max(persona.commitDays, 1)
         guard !paths.isEmpty else {
             errorMessage = "Add the folders of your git repositories in Settings > Sources, so posts come from real commits."
             return
@@ -172,10 +173,10 @@ final class AppModel {
         run("Reading this week's commits…") { model in
             var commits: [Commit] = []
             for path in paths {
-                commits += try await GitLog.recentCommits(in: path)
+                commits += try await GitLog.recentCommits(in: path, days: days)
             }
             guard !commits.isEmpty else {
-                model.errorMessage = "There are no commits from the last 7 days in your repositories."
+                model.errorMessage = "There are no commits from the last \(days) days in your repositories."
                 return
             }
             model.progress = "Writing posts from \(commits.count) commits…"

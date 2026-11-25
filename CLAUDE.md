@@ -24,13 +24,17 @@ Drafts leave the app only as an `x.com/intent/post` link that opens X's composer
   (`APP_STORE=<file>` overrides it). The persona (name, products, keywords, repos) is in UserDefaults.
   API keys are in the keychain (`Keychain.swift`), never in files.
 - `AppModel` runs every action; `ContentView` has the Replies and Posts pages.
+- Customization: Settings > Writing (`Tone`, your own rules, posts per week, commit window), all part of
+  `Persona` and added to both prompts by `Persona.styleRules`; Settings > Appearance (light, dark, or automatic,
+  and the accent color, `UI/Theme.swift`).
 - Buffer scheduling is not in the app. The project's cloud routine owns the Buffer queue, so the app
   never adds to it and nothing is scheduled twice.
 
 ## Layout
 
 - `Sources/PostDesk/` the app. `Sources/PostDeskKit/` logic with no SwiftUI. Tests in `Tests/PostDeskKitTests/`.
-- `Package.swift` a Swift package. There is no Xcode project. `build.sh` builds, signs, and installs `~/Applications/PostDesk.app`.
+- `Package.swift` a Swift package. There is no Xcode project. `build.sh` builds, signs, and installs `/Applications/PostDesk.app` (or `~/Applications`).
+- `Icon/AppIcon.icon` the app icon, an Icon Composer file (JSON plus SVG layers). `build.sh` compiles it with `tools/make_icon.sh` (needs Xcode 26 actool).
 
 ## Build and check
 
@@ -40,7 +44,7 @@ Drafts leave the app only as an `x.com/intent/post` link that opens X's composer
 
 ## Design rules
 
-Same as StreamSpike: Apple's controls and system styles, `.tint` for the accent, spacing from `Space`
+Same as StreamSpike: Apple's controls and system styles, `.tint`, `Palette.accent`, `Palette.accentText` for the accent (`.themed()` on every scene), spacing from `Space`
 (`UI/Space.swift`, 4 pt grid), `.noInitialFocus()` on windows and sheets, `.fitsContent()` on Settings tabs,
 `ContentUnavailableView` for empty states, `Label` with SF Symbols, and every action in the menu bar with a shortcut.
 

@@ -12,7 +12,7 @@ struct PostsView: View {
                 } description: {
                     Text(model.persona.repoPaths.isEmpty
                          ? "Add your git repositories in Settings > Sources. PostDesk writes the week's posts from your real commits."
-                         : "Draft this week's posts from the last 7 days of commits.")
+                         : "Draft this week's posts from your recent commits.")
                 } actions: {
                     if model.persona.repoPaths.isEmpty {
                         SettingsLink { Text("Open Settings…") }
@@ -36,7 +36,7 @@ struct PostsView: View {
         .toolbar {
             ToolbarItem {
                 Button("Draft This Week's Posts", systemImage: "sparkles") { model.draftWeek() }
-                    .help("Write 5 posts from the last 7 days of commits (Command-Shift-D)")
+                    .help("Write this week's posts from your recent commits (Command-Shift-D)")
                     .disabled(model.isBusy)
             }
         }
@@ -57,7 +57,7 @@ struct PostRow: View {
         VStack(alignment: .leading, spacing: Space.sm) {
             HStack(spacing: Space.sm) {
                 if draft.isReady {
-                    Label("Ready", systemImage: "checkmark.seal").foregroundStyle(.tint)
+                    Label("Ready", systemImage: "checkmark.seal").foregroundStyle(Palette.accentText)
                 } else {
                     Label("Needs you", systemImage: "exclamationmark.triangle").foregroundStyle(.orange)
                 }

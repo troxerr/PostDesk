@@ -3,7 +3,7 @@ import PostDeskKit
 import SwiftUI
 
 enum SettingsTab: String, CaseIterable, Identifiable {
-    case account, sources, keys
+    case account, writing, sources, appearance, keys
     var id: String { rawValue }
 }
 
@@ -15,9 +15,17 @@ struct SettingsView: View {
             AccountSettings(persona: $model.persona)
                 .tabItem { Label("Account", systemImage: "person.crop.circle") }
                 .tag(SettingsTab.account)
+            WritingSettings(persona: $model.persona)
+                .tabItem { Label("Writing", systemImage: "text.quote") }
+                .tag(SettingsTab.writing)
             SourceSettings(persona: $model.persona)
                 .tabItem { Label("Sources", systemImage: "folder") }
                 .tag(SettingsTab.sources)
+            Form { AppearanceSettings() }
+                .formStyle(.grouped)
+                .fitsContent()
+                .tabItem { Label("Appearance", systemImage: "paintpalette") }
+                .tag(SettingsTab.appearance)
             KeySettings(persona: $model.persona)
                 .tabItem { Label("Keys", systemImage: "key") }
                 .tag(SettingsTab.keys)
@@ -63,6 +71,40 @@ struct AccountSettings: View {
     }
 }
 
+/// How the drafts sound, and how many there are.
+struct WritingSettings: View {
+    @Binding var persona: Persona
+
+    var body: some View {
+        Form {
+            Section {
+                Picker("Tone", selection: $persona.tone) {
+                    ForEach(Tone.allCases) { tone in
+                        Text(tone.title).tag(tone)
+                    }
+                }
+                TextField("Your own rules", text: $persona.extraInstructions,
+                          prompt: Text("For example: never mention prices, say \"chat\" not \"viewers\""), axis: .vertical)
+                    .lineLimit(3...6)
+            } header: {
+                Text("Voice")
+            } footer: {
+                Text("Used for both replies and posts. Your own rules win over the defaults.").foregroundStyle(.secondary)
+            }
+            Section("Weekly posts") {
+                Stepper("\(persona.postsPerWeek) posts a week", value: $persona.postsPerWeek, in: 1...10)
+                Picker("Read commits from", selection: $persona.commitDays) {
+                    Text("The last 7 days").tag(7)
+                    Text("The last 14 days").tag(14)
+                    Text("The last 30 days").tag(30)
+                }
+            }
+        }
+        .formStyle(.grouped)
+        .fitsContent()
+    }
+}
+
 /// Where facts and posts come from.
 struct SourceSettings: View {
     @Binding var persona: Persona
@@ -83,7 +125,7 @@ struct SourceSettings: View {
             } header: {
                 Text("Repositories")
             } footer: {
-                Text("The week's posts are written from the last 7 days of commits in these folders.").foregroundStyle(.secondary)
+                Text("The week's posts are written from recent commits in these folders.").foregroundStyle(.secondary)
             }
             Section {
                 TextField("Keywords", text: list($persona.keywords, separator: ", "), axis: .vertical)

@@ -24,8 +24,8 @@ public struct PostWriter: Sendable {
         self.persona = persona
     }
 
-    public func write(commits: [Commit], count: Int = 5) async throws -> [PostDraft] {
-        let data = try await client.structured(system: systemPrompt, user: userPrompt(commits: commits, count: count),
+    public func write(commits: [Commit], count: Int? = nil) async throws -> [PostDraft] {
+        let data = try await client.structured(system: systemPrompt, user: userPrompt(commits: commits, count: count ?? persona.postsPerWeek),
                                                schema: Self.schema, effort: "medium", maxTokens: 16000)
         return try Self.drafts(from: data)
     }
@@ -57,6 +57,7 @@ public struct PostWriter: Sendable {
         - Mix the kinds of post: what shipped, how something works, a problem you hit, a small lesson.
         - Set needs_media to true when the post only works with a clip or screenshot.
         - based_on names the commits the post comes from.
+        \(persona.styleRules)
         """
     }
 

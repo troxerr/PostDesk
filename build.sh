@@ -1,5 +1,5 @@
 #!/bin/zsh
-# Builds PostDesk and installs it to ~/Applications/PostDesk.app.
+# Builds PostDesk and installs it to /Applications/PostDesk.app (or ~/Applications when /Applications isn't writable).
 # Build products live in ~/Library/Developer/PostDesk, outside the repo
 # (and outside Dropbox or iCloud, which would try to sync them).
 #
@@ -37,8 +37,8 @@ if [[ -n "$stale" ]]; then
   exit 1
 fi
 
-app="$HOME/Applications/$name.app"
-mkdir -p "$HOME/Applications"
+# Installs to /Applications. If that isn't writable for you, ~/Applications instead.
+if [[ -w /Applications ]]; then app="/Applications/$name.app"; else app="$HOME/Applications/$name.app"; mkdir -p "$HOME/Applications"; fi
 rm -rf "$app"
 mkdir -p "$app/Contents/MacOS" "$app/Contents/Resources"
 cp "$bin" "$app/Contents/MacOS/$name"
@@ -47,9 +47,9 @@ sed -e "s/__BUILD__/$(date +%Y%m%d%H%M)/" "$here/Info.plist.in" > "$app/Contents
 if [[ -d "$here/Icon/AppIcon.icon" ]]; then
   car="$here/Resources/Assets.car"
   if [[ ! -f "$car" || -n "$(find "$here/Icon/AppIcon.icon" -newer "$car" | head -1)" ]]; then
-    "$here/tools/make_icon.sh"
+    "$here/tools/make_icon.sh" || echo "app icon skipped: compiling Icon/AppIcon.icon needs Xcode 26"
   fi
-  cp -X "$car" "$here/Resources/AppIcon.icns" "$app/Contents/Resources/"
+  [[ -f "$car" ]] && cp -X "$car" "$here/Resources/AppIcon.icns" "$app/Contents/Resources/"
 fi
 xattr -cr "$app"
 codesign --force --sign "$identity" "$app" 2>&1 | grep -v "replacing existing signature" || true
