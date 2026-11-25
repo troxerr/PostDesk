@@ -30,13 +30,21 @@ public struct ReplyDrafter: Sendable {
         var user = "Post by \(post.author.isEmpty ? "unknown" : post.author) (\(post.url)):\n\n\(post.text)"
         if let note, !note.isEmpty { user += "\n\nNote from \(persona.name): \(note)" }
         var data = try await client.structured(system: systemPrompt, user: user, schema: Self.schema, effort: "low")
-        // A draft over the limit is sent back once to be rewritten shorter, so it isn't cut mid-sentence.
-        if let first = data, let result = try? JSONDecoder().decode(Result.self, from: first),
-           result.relevant, result.reply.count > Self.maxReplyLength {
-            let shorter = user + "\n\nYour draft was \(result.reply.count) characters, over the limit:\n\(result.reply)\n\n"
-                + "Rewrite it under \(Self.maxReplyLength - 20) characters, in complete sentences."
-            if let retry = try await client.structured(system: systemPrompt, user: shorter, schema: Self.schema, effort: "low") {
-                data = retry
+        // A draft over the limit, or one that reads like a chatbot, is sent back once so you get the fixed
+        // version: shortened in whole sentences, or with the habit named and removed.
+        if let first = data, let result = try? JSONDecoder().decode(Result.self, from: first), result.relevant {
+            let reply = Self.withoutSpilledJSON(result.reply)
+            var fixes: [String] = []
+            if reply.count > Self.maxReplyLength {
+                fixes.append("It was \(reply.count) characters, over the limit. Rewrite it under \(Self.maxReplyLength - 20) characters, in complete sentences.")
+            }
+            let tells = Tells.find(in: reply)
+            if !tells.isEmpty { fixes.append(Tells.note(for: tells)) }
+            if !fixes.isEmpty {
+                let again = user + "\n\nYour draft:\n\(reply)\n\n" + fixes.joined(separator: " ")
+                if let retry = try await client.structured(system: systemPrompt, user: again, schema: Self.schema, effort: "low") {
+                    data = retry
+                }
             }
         }
         let minLead = note == Self.insistNote ? 1 : persona.minLead

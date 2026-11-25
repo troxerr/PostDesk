@@ -428,3 +428,38 @@ struct PastedLinksTests {
         #expect(ReplyDrafter.trimmed(#"He said "go"."#) == #"He said "go"."#)
     }
 }
+
+@Suite("Human voice")
+struct HumanVoiceTests {
+    @Test func findsChatbotHabits() {
+        #expect(Tells.find(in: "Chat is the best map, not just a log — it tells you where to look.").count == 2)
+        #expect(Tells.find(in: "It's not about the clips, it's about the story.").contains("a \"not just X, but Y\" contrast"))
+        #expect(Tells.find(in: "Been there. Check the VOD for chat spikes.").contains("a stock opener"))
+        #expect(Tells.find(in: "Quick trick: use /marker.").contains("a stock opener"))
+        #expect(Tells.find(in: "Unlock seamless clipping").count == 1)
+    }
+
+    @Test func plainTextHasNone() {
+        #expect(Tells.find(in: "Sort the chat replay by messages per minute. The spikes are usually your four clips.").isEmpty)
+        #expect(Tells.find(in: "I don't use stories, I just post clips. Works fine.").isEmpty)
+        #expect(Tells.find(in: "The test isn't flaky, it fails every time on Linux.").count <= 1)
+    }
+
+    @Test func promptsCarryTheVoiceRules() {
+        let reply = ReplyDrafter(client: ClaudeClient(apiKey: "k"), persona: .astLabs).systemPrompt
+        let post = PostWriter(client: ClaudeClient(apiKey: "k"), persona: .astLabs).systemPrompt
+        for prompt in [reply, post] {
+            #expect(prompt.contains("Sound like a person typing quickly"))
+            #expect(prompt.contains("Do not open with \"Been there\""))
+        }
+    }
+
+    @Test func aChatbotSoundingReplyIsSentBackOnce() async throws {
+        let bad = #"{"relevant":true,"lead_score":7,"reason":"ok","mentions_product":false,"reply":"Been there. Chat is not just noise, it's your map."}"#
+        let transport = FakeTransport(body: messageBody(bad))
+        let drafter = ReplyDrafter(client: ClaudeClient(apiKey: "k", transport: transport), persona: .astLabs)
+        _ = try await drafter.draft(samplePost)
+        #expect(transport.requests.count == 2)
+        #expect(String(decoding: transport.requests[1].httpBody!, as: UTF8.self).contains("reads like a chatbot"))
+    }
+}

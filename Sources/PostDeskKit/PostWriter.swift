@@ -27,17 +27,26 @@ public struct PostWriter: Sendable {
     public func write(commits: [Commit], count: Int? = nil) async throws -> [PostDraft] {
         let data = try await client.structured(system: systemPrompt, user: userPrompt(commits: commits, count: count ?? persona.postsPerWeek),
                                                schema: Self.schema, effort: "medium", maxTokens: 16000)
-        return try Self.drafts(from: data)
+        var drafts = try Self.drafts(from: data)
+        // A post that reads like a chatbot wrote it is rewritten once, with the habit named.
+        for index in drafts.indices {
+            let tells = Tells.find(in: drafts[index].text)
+            guard !tells.isEmpty, let better = try await rewrite(drafts[index], note: Tells.note(for: tells)),
+                  Tells.find(in: better.text).count < tells.count else { continue }
+            drafts[index].text = better.text
+            drafts[index].needsMedia = better.needsMedia
+        }
+        return drafts
     }
 
     /// Writes one new version of a post with the same facts.
-    public func rewrite(_ draft: PostDraft) async throws -> PostDraft? {
+    public func rewrite(_ draft: PostDraft, note: String? = nil) async throws -> PostDraft? {
         let user = """
         Write 1 post. It replaces this draft, with the same facts and a different angle or opening:
 
         \(draft.text)
 
-        It was based on: \(draft.basedOn)
+        It was based on: \(draft.basedOn)\(note.map { "\n\n\($0)" } ?? "")
         """
         let data = try await client.structured(system: systemPrompt, user: user, schema: Self.schema,
                                                effort: "medium", maxTokens: 8000)
@@ -68,6 +77,9 @@ public struct PostWriter: Sendable {
         - Under 280 characters each. First person, plain words, one idea per post.
         - No links in the post (X shows those to fewer people), no hashtags, no emoji spam,
           no em dashes, no asking for likes, follows or reposts.
+        - Write posts the way a person does on their own account: one thing that happened, said plainly,
+          with the one detail that makes it real. No "here's what I learned", no moral at the end, no
+          "excited to share". A post can be two short sentences.
         - Write for the account's audience: streamers and clippers. Tools that aren't in the products list
           are build-in-public notes from the developer; never ask the audience about them as if they used them.
         - Call a change a fix only when it fixes a bug. A new feature is new, not a fix.

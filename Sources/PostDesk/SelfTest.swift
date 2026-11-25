@@ -84,6 +84,8 @@ enum SelfTest {
                           "reply to \(post.author) names at most one product")
                     check(draft.replyLink != nil, "reply to \(post.author) has an X reply link")
                     check(!draft.reply.contains("—"), "reply to \(post.author) has no em dash")
+                    let tells = Tells.find(in: draft.reply)
+                    if !tells.isEmpty { notes.append("reply to \(post.author) still has: \(tells.joined(separator: ", "))") }
                     check(!draft.reply.contains("http"), "reply to \(post.author) has no link")
                     if post.author == "@sample_food" { failures.append("Claude drafted a reply to the off-topic snack post instead of skipping it") }
                 case .skipped(let skipped):
@@ -133,6 +135,10 @@ enum SelfTest {
             print("Written in \(seconds(since: start)).\n")
             check(!drafts.isEmpty && drafts.count <= persona.postsPerWeek, "the writer returns 1 to \(persona.postsPerWeek) posts (got \(drafts.count))")
             check(Set(drafts.map(\.text)).count == drafts.count, "no two posts are the same")
+            for draft in drafts {
+                let tells = Tells.find(in: draft.text)
+                if !tells.isEmpty { notes.append("a post still has: \(tells.joined(separator: ", ")): \(draft.text.prefix(50))…") }
+            }
             for draft in drafts where draft.text.contains(/(^|\s)#[A-Za-z]/) {
                 notes.append("A post has a hashtag although the prompt says none: \(draft.text.prefix(60))…")
             }

@@ -201,9 +201,22 @@ public struct Persona: Codable, Hashable, Sendable {
         return product
     }
 
+    /// What separates a person's post from a chatbot's, for every prompt. Tells.find checks the same list.
+    static let humanVoice = """
+    - Sound like a person typing quickly, not a chatbot. Contractions, plain words, one specific detail
+      (a number, a tool, a setting, something that actually happened) instead of general advice.
+    - Vary how replies start. Do not open with "Been there", "Quick trick", "Quick win", "Honestly", "Great question"
+      or any greeting. Start with the useful part. Do not end with a question unless you really want the answer.
+    - No "not just X, but Y" or "it's not X, it's Y" contrasts. No "the real X". No dashes of any kind, no emoji,
+      no hashtags. Never explain why something matters or sum up the point after making it.
+    - Don't use words like leverage, unlock, elevate, seamless, robust, pivotal, crucial, landscape, delve.
+    - Don't list things in threes. Short sentences are fine. A fragment is fine. Uneven is human.
+    - Never sound more excited or more certain than the facts allow.
+    """
+
     /// The tone and your own rules, as lines for a system prompt.
     public var styleRules: String {
-        var lines = ["- Tone: \(tone.instruction)"]
+        var lines = [Self.humanVoice, "- Tone: \(tone.instruction)"]
         let extra = extraInstructions.trimmingCharacters(in: .whitespacesAndNewlines)
         if !extra.isEmpty { lines.append("- The account owner's own rules, which win over the rest: \(extra)") }
         return lines.joined(separator: "\n")
