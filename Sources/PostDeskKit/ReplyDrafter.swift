@@ -77,9 +77,10 @@ public struct ReplyDrafter: Sendable {
             reply = String(reply[..<spill.lowerBound])
         }
         // …or the closing quote and brace of the object itself: `…there."}`
-        if let end = reply.firstRange(of: /"\s*\}\s*$/) {
+        if let end = reply.firstRange(of: /"?\s*\}+\s*$/) {
             reply = String(reply[..<end.lowerBound])
         }
+        reply = reply.replacing(/ {2,}/, with: " ")
         // …or markup copied from an embedded post, like `<br>` or `</br>`.
         reply = reply.replacing(/<\/?[A-Za-z][^>]*>/, with: "")
         return reply

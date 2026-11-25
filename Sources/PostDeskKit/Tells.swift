@@ -23,7 +23,7 @@ public enum Tells {
         add("a closing line that explains why it matters", if:
             text.contains(/\b(nobody wants|no one wants|shouldn't have to|worth (reporting|noting|remembering)|that'?s what matters|and that matters)\b/.ignoresCase()))
         add("a one-line saying as an opener", if:
-            text.contains(/^[A-Z][A-Za-z' ]{3,40} (beats|wins over|is the best) [A-Za-z' ]{3,30}\./))
+            text.contains(/^[A-Z][A-Za-z' ]{3,40} (beats?|wins over|is the best) [A-Za-z' ]{3,30}\./))
         add("an effort claim the commits may not support", if:
             text.contains(/\btook (me )?(a few|several|a couple( of)?|\d+|weeks|days)\b[^.]{0,25}\b(days|weeks|months|hours|nights)\b/.ignoresCase()))
         add("emoji", if: text.unicodeScalars.contains { $0.properties.isEmojiPresentation })

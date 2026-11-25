@@ -377,6 +377,8 @@ struct SpilledJSONTests {
         let reply = #"Or stack a facecam crop on top and the gameplay below.","relevant":true}"#
         #expect(ReplyDrafter.trimmed(reply) == "Or stack a facecam crop on top and the gameplay below.")
         #expect(ReplyDrafter.trimmed(#"He said "go", then left."#) == #"He said "go", then left."#)
+        #expect(ReplyDrafter.trimmed("You'd still cut them yourself.}") == "You'd still cut them yourself.")
+        #expect(ReplyDrafter.trimmed("Scroll up.  Is he live?") == "Scroll up. Is he live?")
     }
 }
 
