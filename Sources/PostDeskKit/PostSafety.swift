@@ -17,7 +17,7 @@ public enum PostSafety {
         if text.contains(/https?:\/\//) {
             problems.append("Has a link. X shows posts with links to fewer people, so put the link in a reply.")
         }
-        if text.matches(of: /(^|\s)#\w+/).count > 1 { problems.append("Has more than one hashtag.") }
+        if text.contains(/(^|\s)#[A-Za-z]\w*/) { problems.append("Has a hashtag. Take it out: X doesn't need them.") }
         return problems
     }
 

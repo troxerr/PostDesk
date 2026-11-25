@@ -66,8 +66,13 @@ public struct PostWriter: Sendable {
         - Every claim comes from the commits you are given. Never invent numbers, users, sales or dates.
           If a post needs a number you don't have, write it as [number] so a person fills it in.
         - Under 280 characters each. First person, plain words, one idea per post.
-        - No links in the post (X shows those to fewer people), at most one hashtag, no emoji spam,
+        - No links in the post (X shows those to fewer people), no hashtags, no emoji spam,
           no em dashes, no asking for likes, follows or reposts.
+        - Write for the account's audience: streamers and clippers. Tools that aren't in the products list
+          are build-in-public notes from the developer; never ask the audience about them as if they used them.
+        - Call a change a fix only when it fixes a bug. A new feature is new, not a fix.
+        - Every post covers a different change or idea. If the commits can't fill the requested number of
+          distinct posts, write about the products' existing features (from their descriptions) or write fewer.
         - Mix the kinds of post: what shipped, how something works, a problem you hit, a small lesson.
         - Set needs_media to true when the post only works with a clip or screenshot.
         - based_on names the commits the post comes from.

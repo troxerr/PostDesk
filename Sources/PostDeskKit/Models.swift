@@ -143,11 +143,13 @@ public struct Persona: Codable, Hashable, Sendable {
     public var postsPerWeek: Int
     /// How many days of commits the weekly posts read.
     public var commitDays: Int
+    /// Replies to posts that score below this lead are skipped.
+    public var minLead: Int
 
     public init(name: String, handle: String, bio: String, products: [Product], keywords: [String],
                 searchQueries: [String], repoPaths: [String], model: String = ClaudeClient.defaultModel,
                 dailyMax: Int = 10, tone: Tone = .friendly, extraInstructions: String = "",
-                postsPerWeek: Int = 5, commitDays: Int = 7) {
+                postsPerWeek: Int = 5, commitDays: Int = 7, minLead: Int = 3) {
         self.name = name
         self.handle = handle
         self.bio = bio
@@ -161,6 +163,7 @@ public struct Persona: Codable, Hashable, Sendable {
         self.extraInstructions = extraInstructions
         self.postsPerWeek = postsPerWeek
         self.commitDays = commitDays
+        self.minLead = minLead
     }
 
     /// Settings saved by an older version are missing the newer keys: fill those with defaults.
@@ -180,6 +183,7 @@ public struct Persona: Codable, Hashable, Sendable {
         extraInstructions = try c.decodeIfPresent(String.self, forKey: .extraInstructions) ?? base.extraInstructions
         postsPerWeek = try c.decodeIfPresent(Int.self, forKey: .postsPerWeek) ?? base.postsPerWeek
         commitDays = try c.decodeIfPresent(Int.self, forKey: .commitDays) ?? base.commitDays
+        minLead = try c.decodeIfPresent(Int.self, forKey: .minLead) ?? base.minLead
     }
 
     /// The tone and your own rules, as lines for a system prompt.
@@ -195,8 +199,8 @@ public struct Persona: Codable, Hashable, Sendable {
         handle: "@AST_Labs",
         bio: "an indie Mac and Windows developer who builds tools that read Twitch and YouTube chat",
         products: [
-            Product(name: "ClipSpike", pitch: "watches Twitch chat while you stream and saves the moments chat reacts to as 9:16 vertical clips; Windows app, 3 free clips a week, $39 once"),
-            Product(name: "StreamSpike", pitch: "Mac app in development that finds chat spikes in a Twitch or YouTube VOD and shows what the streamer said at that moment"),
+            Product(name: "ClipSpike", pitch: "Windows app for live streams: watches Twitch chat while you stream and saves the moments chat reacts to as 9:16 vertical clips; 3 free clips a week, $39 once"),
+            Product(name: "StreamSpike", pitch: "Mac app, still in development, for past streams: finds where chat spiked in a finished Twitch or YouTube VOD and shows what the streamer said at that moment; it does not make clips"),
         ],
         keywords: ["clip", "clipping", "highlight", "vod", "twitch", "stream", "chat", "shorts", "tiktok", "ffmpeg", "whisper"],
         searchQueries: ["twitch clips", "vod highlights"],

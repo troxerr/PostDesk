@@ -29,8 +29,18 @@ public struct ReplyDrafter: Sendable {
     public func draft(_ post: SourcePost, note: String? = nil) async throws -> Outcome {
         var user = "Post by \(post.author.isEmpty ? "unknown" : post.author) (\(post.url)):\n\n\(post.text)"
         if let note, !note.isEmpty { user += "\n\nNote from \(persona.name): \(note)" }
-        let data = try await client.structured(system: systemPrompt, user: user, schema: Self.schema, effort: "low")
-        return try Self.outcome(from: data, post: post)
+        var data = try await client.structured(system: systemPrompt, user: user, schema: Self.schema, effort: "low")
+        // A draft over the limit is sent back once to be rewritten shorter, so it isn't cut mid-sentence.
+        if let first = data, let result = try? JSONDecoder().decode(Result.self, from: first),
+           result.relevant, result.reply.count > Self.maxReplyLength {
+            let shorter = user + "\n\nYour draft was \(result.reply.count) characters, over the limit:\n\(result.reply)\n\n"
+                + "Rewrite it under \(Self.maxReplyLength - 20) characters, in complete sentences."
+            if let retry = try await client.structured(system: systemPrompt, user: shorter, schema: Self.schema, effort: "low") {
+                data = retry
+            }
+        }
+        let minLead = note == Self.insistNote ? 1 : persona.minLead
+        return try Self.outcome(from: data, post: post, minLead: minLead)
     }
 
     public static func redraftNote(replacing old: String) -> String {
@@ -39,11 +49,14 @@ public struct ReplyDrafter: Sendable {
 
     public static let insistNote = "I want to reply to this one. Set relevant to true and write the most useful reply you can, without mentioning the products unless it truly fits."
 
-    static func outcome(from data: Data?, post: SourcePost) throws -> Outcome {
+    static func outcome(from data: Data?, post: SourcePost, minLead: Int = 1) throws -> Outcome {
         guard let data else { return .skipped(SkippedPost(post: post, reason: "Claude declined to answer this one.")) }
         let result = try JSONDecoder().decode(Result.self, from: data)
         let reply = trimmed(result.reply)
         guard result.relevant, !reply.isEmpty else { return .skipped(SkippedPost(post: post, reason: result.reason)) }
+        guard result.leadScore >= minLead else {
+            return .skipped(SkippedPost(post: post, reason: "Lead \(result.leadScore)/10, under your minimum of \(minLead). \(result.reason)"))
+        }
         return .draft(ReplyDraft(post: post, leadScore: min(max(result.leadScore, 1), 10), reason: result.reason,
                                  mentionsProduct: result.mentionsProduct, reply: reply))
     }
@@ -52,6 +65,10 @@ public struct ReplyDrafter: Sendable {
         let reply = reply.trimmingCharacters(in: .whitespacesAndNewlines)
         guard reply.count > maxReplyLength else { return reply }
         let cut = String(reply.prefix(maxReplyLength))
+        // End on a whole sentence when one ends past the halfway point.
+        if let end = cut.lastIndex(where: { ".!?".contains($0) }), cut.distance(from: cut.startIndex, to: end) > maxReplyLength / 2 {
+            return String(cut[...end])
+        }
         guard let space = cut.lastIndex(of: " ") else { return cut }
         return String(cut[..<space])
     }
@@ -72,10 +89,13 @@ public struct ReplyDrafter: Sendable {
         - Most replies should not mention the products. Mention one only when it directly solves what the
           post is about, and then say plainly that they built it ("I built ClipSpike for this").
           Never pose as a neutral user or customer.
+        - Name at most one product: the one whose description above fits the post. Describe it only with
+          what its description says, never with another product's features. If it is in development, say so.
         - Under \(Self.maxReplyLength) characters. First person, plain words. No hashtags, no emoji, no links,
           no em dashes, no flattery openers, no asking for likes, follows or reposts.
         - If the post is off-topic, hostile, sensitive, or a reply would feel like an ad, set relevant to
-          false and leave reply empty.
+          false and leave reply empty. Off-topic means it has nothing to do with streaming, clipping, video
+          tools, or building software for creators, even if it mentions a stream in passing.
         \(persona.styleRules)
 
         lead_score: 1-10, how likely this author is to need the products (streamer or clipper with a

@@ -314,3 +314,49 @@ struct RedraftTests {
         #expect(sent.contains("Old text about the fix."))
     }
 }
+
+@Suite("Draft quality")
+struct QualityTests {
+    @Test func lowLeadsAreSkippedUnlessInsisted() async throws {
+        let json = #"{"relevant":true,"lead_score":2,"reason":"Snack question","mentions_product":false,"reply":"Try grapes."}"#
+        let drafter = ReplyDrafter(client: ClaudeClient(apiKey: "k", transport: FakeTransport(body: messageBody(json))), persona: .astLabs)
+        guard case .skipped(let skipped) = try await drafter.draft(samplePost) else {
+            Issue.record("a lead of 2 should be skipped at the default minimum of 3")
+            return
+        }
+        #expect(skipped.reason.hasPrefix("Lead 2/10"))
+        guard case .draft = try await drafter.draft(samplePost, note: ReplyDrafter.insistNote) else {
+            Issue.record("Draft Anyway should ignore the minimum")
+            return
+        }
+    }
+
+    @Test func longRepliesAreSentBackOnce() async throws {
+        let long = Array(repeating: "This sentence is long enough.", count: 20).joined(separator: " ")
+        let json = #"{"relevant":true,"lead_score":7,"reason":"ok","mentions_product":false,"reply":"\#(long)"}"#
+        let transport = FakeTransport(body: messageBody(json))
+        let drafter = ReplyDrafter(client: ClaudeClient(apiKey: "k", transport: transport), persona: .astLabs)
+        guard case .draft(let draft) = try await drafter.draft(samplePost) else {
+            Issue.record("expected a draft")
+            return
+        }
+        #expect(transport.requests.count == 2)
+        #expect(String(decoding: transport.requests[1].httpBody!, as: UTF8.self).contains("over the limit"))
+        // The fake answers long again, so the fallback trim ends on a whole sentence.
+        #expect(draft.reply.count <= ReplyDrafter.maxReplyLength)
+        #expect(draft.reply.hasSuffix("."))
+    }
+
+    @Test func anyHashtagNeedsAPerson() {
+        #expect(PostSafety.problems(in: "Shipped the icon #buildinpublic", needsMedia: false).count == 1)
+        #expect(PostSafety.problems(in: "Fixed issue #42 in the parser", needsMedia: false).isEmpty)
+    }
+
+    @Test func promptsKeepProductsApart() {
+        let reply = ReplyDrafter(client: ClaudeClient(apiKey: "k"), persona: .astLabs).systemPrompt
+        #expect(reply.contains("Name at most one product"))
+        let post = PostWriter(client: ClaudeClient(apiKey: "k"), persona: .astLabs).systemPrompt
+        #expect(post.contains("no hashtags"))
+        #expect(post.contains("A new feature is new, not a fix"))
+    }
+}

@@ -78,10 +78,13 @@ enum SelfTest {
                     print(draft.reply + "\n")
                     print("_\(draft.reason)_\n")
                     check(draft.reply.count <= ReplyDrafter.maxReplyLength, "reply to \(post.author) fits in \(ReplyDrafter.maxReplyLength) characters")
+                    check(endsWhole(draft.reply), "reply to \(post.author) ends on a whole sentence")
+                    check(draft.reply.components(separatedBy: "ClipSpike").count + draft.reply.components(separatedBy: "StreamSpike").count <= 3,
+                          "reply to \(post.author) names at most one product")
                     check(draft.replyLink != nil, "reply to \(post.author) has an X reply link")
                     check(!draft.reply.contains("—"), "reply to \(post.author) has no em dash")
                     check(!draft.reply.contains("http"), "reply to \(post.author) has no link")
-                    if post.author == "@sample_food" { notes.append("Claude drafted a reply to the snack post; it should probably skip it.") }
+                    if post.author == "@sample_food" { failures.append("Claude drafted a reply to the off-topic snack post instead of skipping it") }
                 case .skipped(let skipped):
                     print("Skipped by Claude (\(seconds(since: start))): \(skipped.reason)\n")
                     if post.author != "@sample_food" { notes.append("Claude skipped \(post.author), a post the app is meant for.") }
@@ -98,6 +101,7 @@ enum SelfTest {
             if case .draft(let again) = try await drafter.draft(firstDraft.post, note: ReplyDrafter.redraftNote(replacing: firstDraft.reply)) {
                 print("### Redraft of the first reply\n\n\(again.reply)\n")
                 check(again.reply != firstDraft.reply, "a redraft gives a different reply")
+                check(endsWhole(again.reply), "the redraft ends on a whole sentence")
             } else {
                 failures.append("the redraft was skipped")
             }
@@ -126,7 +130,11 @@ enum SelfTest {
             let start = Date()
             let drafts = try await PostWriter(client: client, persona: persona).write(commits: commits)
             print("Written in \(seconds(since: start)).\n")
-            check(drafts.count == persona.postsPerWeek, "the writer returns \(persona.postsPerWeek) posts (got \(drafts.count))")
+            check(!drafts.isEmpty && drafts.count <= persona.postsPerWeek, "the writer returns 1 to \(persona.postsPerWeek) posts (got \(drafts.count))")
+            check(Set(drafts.map(\.text)).count == drafts.count, "no two posts are the same")
+            for draft in drafts where draft.text.contains(/(^|\s)#[A-Za-z]/) {
+                notes.append("A post has a hashtag although the prompt says none: \(draft.text.prefix(60))…")
+            }
             for (index, draft) in drafts.enumerated() {
                 print("### \(index + 1). \(draft.isReady ? "Ready" : "Needs you")\n\n\(draft.text)\n")
                 print("_Based on: \(draft.basedOn)_\n")
@@ -148,6 +156,11 @@ enum SelfTest {
         } catch {
             failures.append("saving the desk file: \(error.localizedDescription)")
         }
+    }
+
+    private static func endsWhole(_ text: String) -> Bool {
+        guard let last = text.trimmingCharacters(in: .whitespacesAndNewlines).last else { return false }
+        return ".!?)\"'".contains(last)
     }
 
     private static func check(_ ok: Bool, _ what: String) {

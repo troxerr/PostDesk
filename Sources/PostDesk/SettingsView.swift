@@ -91,6 +91,14 @@ struct WritingSettings: View {
             } footer: {
                 Text("Used for both replies and posts. Your own rules win over the defaults.").foregroundStyle(.secondary)
             }
+            Section {
+                Stepper("Skip posts with a lead under \(persona.minLead)", value: $persona.minLead, in: 1...8)
+            } header: {
+                Text("Reply drafts")
+            } footer: {
+                Text("Claude scores each post 1 to 10 by how likely the author is to need your products. Draft Anyway ignores this.")
+                    .foregroundStyle(.secondary)
+            }
             ReminderSection()
             Section("Weekly posts") {
                 Stepper("\(persona.postsPerWeek) posts a week", value: $persona.postsPerWeek, in: 1...10)
