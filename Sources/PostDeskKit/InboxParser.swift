@@ -29,4 +29,19 @@ public enum InboxParser {
         var seen = Set<String>()
         return posts.filter { seen.insert($0.url).inserted }
     }
+
+    /// Post links in `text` that came without their text, written as https://x.com/handle/status/id.
+    /// Links that start a pasted block with text are left out: `parse` already has those.
+    public static func bareLinks(in text: String) -> [String] {
+        let withText = Set(parse(text).map { canonical($0.url) })
+        var seen = Set<String>()
+        return text.matches(of: /https?:\/\/(?:www\.|mobile\.)?(?:x|twitter)\.com\/\w+\/status(?:es)?\/\d+/)
+            .map { canonical(String($0.output)) }
+            .filter { !withText.contains($0) && seen.insert($0).inserted }
+    }
+
+    static func canonical(_ url: String) -> String {
+        guard let match = url.firstMatch(of: /(?:x|twitter)\.com\/(\w+)\/status(?:es)?\/(\d+)/) else { return url }
+        return "https://x.com/\(match.1)/status/\(match.2)"
+    }
 }

@@ -8,16 +8,23 @@ struct RepliesView: View {
         Group {
             if model.visibleReplies.isEmpty && model.state.skipped.isEmpty {
                 ContentUnavailableView {
-                    Label("No Reply Drafts", systemImage: "bubble.left.and.bubble.right")
+                    Label(model.hasKey ? "No Reply Drafts" : "Add Your Claude Key", systemImage: model.hasKey ? "bubble.left.and.bubble.right" : "key")
                 } description: {
-                    Text(model.state.inbox.isEmpty
-                         ? "Paste posts from X, or fetch them with your X API token. Claude drafts replies, and you post the ones you like yourself."
+                    Text(!model.hasKey
+                         ? "PostDesk needs your Anthropic API key to write drafts. It's kept in your Mac's keychain."
+                         : model.state.inbox.isEmpty
+                         ? "Copy a post's link from X (Share > Copy link), then press Command-Shift-V. Claude drafts a reply, and you post it yourself."
                          : "\(model.state.inbox.count) posts are waiting in the inbox.")
                 } actions: {
+                    if !model.hasKey {
+                        SettingsLink { Text("Open Settings…") }
+                    }
+                    Button("Paste Link and Draft") { model.pasteFromClipboard() }
+                        .buttonStyle(.borderedProminent)
+                        .disabled(model.isBusy || !model.hasKey)
                     Button("Paste Posts…") { model.showsPasteSheet = true }
                     if !model.state.inbox.isEmpty {
                         Button("Draft Replies") { model.draftReplies() }
-                            .buttonStyle(.borderedProminent)
                             .disabled(model.isBusy)
                     }
                 }
@@ -52,8 +59,9 @@ struct RepliesView: View {
         .navigationSubtitle(model.state.inbox.isEmpty ? "Nothing is posted for you" : "\(model.state.inbox.count) in the inbox")
         .toolbar {
             ToolbarItemGroup {
-                Button("Paste Posts", systemImage: "doc.on.clipboard") { model.showsPasteSheet = true }
-                    .help("Paste posts copied from X (Command-Shift-V)")
+                Button("Paste and Draft", systemImage: "doc.on.clipboard") { model.pasteFromClipboard() }
+                    .help("Draft a reply to the post link or posts on your clipboard (Command-Shift-V)")
+                    .disabled(model.isBusy)
                 Button("Fetch from X", systemImage: "arrow.down.circle") { model.fetchFromX() }
                     .help("Search X with the official API (Command-Shift-F)")
                     .disabled(model.isBusy)
@@ -96,6 +104,7 @@ struct ReplyRow: View {
                 if draft.status == .open {
                     Button("Dismiss") { model.setReplyStatus(draft.id, .dismissed) }
                     Button("Mark Posted") { model.setReplyStatus(draft.id, .posted) }
+                        .help("For when you posted it another way")
                 } else {
                     Button("Restore") { model.setReplyStatus(draft.id, .open) }
                 }
@@ -103,9 +112,9 @@ struct ReplyRow: View {
                     .help("Ask Claude for a different reply (Command-Shift-R)")
                     .disabled(model.isBusy)
                 Button("Copy") { model.copy(draft.reply) }
-                Button("Reply on X") { model.open(draft.replyLink ?? URL(string: draft.post.url)) }
+                Button("Reply on X") { model.sendReplyToX(draft.id) }
                     .buttonStyle(.borderedProminent)
-                    .help("Opens X's reply box with this text. You press Post.")
+                    .help("Opens X's reply box with this text and files the draft as posted. You press Post. Restore brings it back.")
             }
             .font(.callout)
         }

@@ -379,3 +379,32 @@ struct SpilledJSONTests {
         #expect(ReplyDrafter.trimmed(#"He said "go", then left."#) == #"He said "go", then left."#)
     }
 }
+
+@Suite("Links only")
+struct LinksOnlyTests {
+    @Test func findsBareLinks() {
+        let text = """
+        https://x.com/a/status/1?s=20
+        https://twitter.com/b/status/2
+        https://x.com/c/status/3
+        by @c
+        Text for the third
+        ---
+        https://x.com/a/status/1
+        """
+        #expect(InboxParser.bareLinks(in: text) == ["https://x.com/a/status/1", "https://x.com/b/status/2"])
+    }
+
+    @Test func readsAnEmbed() async throws {
+        let json = #"{"author_url":"https:\/\/twitter.com\/streamer","html":"<blockquote class=\"twitter-tweet\"><p lang=\"en\" dir=\"ltr\">Scrubbing VODs &amp; hating it<br>3 hours lost <a href=\"https:\/\/t.co\/x\">pic.twitter.com\/abc</a></p>&mdash; Streamer (@streamer) <a href=\"https:\/\/twitter.com\/streamer\/status\/9\">Nov 24</a></blockquote>"}"#
+        let post = try await OEmbed(transport: FakeTransport(body: json)).post(for: "https://x.com/streamer/status/9")
+        #expect(post.author == "@streamer")
+        #expect(post.text == "Scrubbing VODs & hating it\n3 hours lost")
+    }
+
+    @Test func unreadableLinksSayWhatToDo() async {
+        await #expect(throws: OEmbedError.self) {
+            _ = try await OEmbed(transport: FakeTransport(status: 404, body: "{}")).post(for: "https://x.com/a/status/1")
+        }
+    }
+}

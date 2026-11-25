@@ -82,12 +82,43 @@ final class AppModel {
 
     // MARK: - Inbox
 
-    /// Adds pasted posts to the inbox. Returns how many were new.
-    @discardableResult
-    func paste(_ text: String) -> Int {
-        let added = state.addToInbox(InboxParser.parse(text))
-        save()
-        return added
+    /// False once a draft failed for lack of a key, or the key was cleared. Reading the
+    /// keychain on every redraw would pop its prompt, so this is remembered instead.
+    var hasKey: Bool { UserDefaults.standard.object(forKey: "setup.hasKey") as? Bool ?? true }
+
+    /// Takes whatever was pasted or dropped: full posts, or just links to posts. Bare links are
+    /// read through X's embed endpoint. With `draft`, drafts replies as soon as the posts are in.
+    func addPosts(from text: String, draft: Bool) {
+        let links = InboxParser.bareLinks(in: text)
+        let full = InboxParser.parse(text)
+        guard !full.isEmpty || !links.isEmpty else {
+            errorMessage = "I couldn't find a post in that. Copy a post's link from X (Share > Copy link) and try again."
+            return
+        }
+        run("Reading posts…") { model in
+            model.state.addToInbox(full)
+            var unread: [String] = []
+            let embed = OEmbed()
+            for link in links where !model.state.seen.contains(link) {
+                model.progress = "Reading \(link.replacingOccurrences(of: "https://x.com/", with: ""))…"
+                do { model.state.addToInbox([try await embed.post(for: link)]) } catch is CancellationError { throw CancellationError() } catch { unread.append(link) }
+            }
+            model.save()
+            if !unread.isEmpty {
+                model.errorMessage = "Couldn't read \(unread.count == 1 ? "this post" : "\(unread.count) posts"): \(unread.joined(separator: ", ")). Paste the post's text under its link, with a line of --- between posts."
+            }
+            if draft, !model.state.inbox.isEmpty { try await model.draftInbox() }
+        }
+    }
+
+    /// The clipboard's posts, drafted at once. Opens the paste sheet when it holds none.
+    func pasteFromClipboard(draft: Bool = true) {
+        let text = NSPasteboard.general.string(forType: .string) ?? ""
+        if InboxParser.parse(text).isEmpty && InboxParser.bareLinks(in: text).isEmpty {
+            showsPasteSheet = true
+        } else {
+            addPosts(from: text, draft: draft)
+        }
     }
 
     func fetchFromX() {
@@ -117,30 +148,39 @@ final class AppModel {
 
     func draftReplies() {
         guard !state.inbox.isEmpty else {
-            errorMessage = "The inbox is empty. Paste posts from X first (Command-Shift-V)."
+            errorMessage = "The inbox is empty. Copy a post's link from X and press Command-Shift-V."
             return
         }
+        run("Drafting replies…") { model in try await model.draftInbox() }
+    }
+
+    /// Drafts replies for the inbox, up to the daily limit. Runs inside `run`.
+    private func draftInbox() async throws {
         let drafter = makeDrafter()
         let limit = max(persona.dailyMax, 1)
-        run("Drafting replies…") { model in
+        do {
             var drafted = 0
-            while let post = model.state.inbox.first, drafted < limit {
+            while let post = state.inbox.first, drafted < limit {
                 try Task.checkCancellation()
-                if ReplyDrafter.keywordMatch(post, keywords: model.persona.keywords) {
-                    model.progress = "Drafting reply \(drafted + 1) of \(min(limit, model.state.inbox.count + drafted))…"
+                if ReplyDrafter.keywordMatch(post, keywords: persona.keywords) {
+                    progress = "Drafting reply \(drafted + 1) of \(min(limit, state.inbox.count + drafted))…"
                     switch try await drafter.draft(post) {
-                    case .draft(let draft): model.state.replies.append(draft)
-                    case .skipped(let skipped): model.state.skipped.append(skipped)
+                    case .draft(let draft): state.replies.append(draft)
+                    case .skipped(let skipped): state.skipped.append(skipped)
                     }
                     drafted += 1
                 } else {
-                    model.state.skipped.append(SkippedPost(post: post, reason: "None of your keywords are in it."))
+                    state.skipped.append(SkippedPost(post: post, reason: "None of your keywords are in it."))
                 }
-                model.state.inbox.removeFirst()
-                model.state.seen.insert(post.url)
-                model.save()
+                state.inbox.removeFirst()
+                state.seen.insert(post.url)
+                save()
             }
-            model.page = .replies
+            page = .replies
+            selectedReply = visibleReplies.first?.id
+        } catch ClaudeError.missingKey {
+            UserDefaults.standard.set(false, forKey: "setup.hasKey")
+            throw ClaudeError.missingKey
         }
     }
 
@@ -285,10 +325,24 @@ final class AppModel {
 
     func openSelectedOnX() {
         switch page {
-        case .replies: if let draft = selectedReply.flatMap(reply) { open(draft.replyLink ?? URL(string: draft.post.url)) }
-        case .posts: if let draft = selectedPost.flatMap(post) { open(draft.composeLink) }
+        case .replies: if let id = selectedReply { sendReplyToX(id) }
+        case .posts: if let id = selectedPost { sendPostToX(id) }
         case nil: break
         }
+    }
+
+    /// Opens X's reply box with the draft and files it as posted, so the list shows what is left.
+    /// PostDesk can't see whether you pressed Post: Restore brings a draft back.
+    func sendReplyToX(_ id: ReplyDraft.ID) {
+        guard let draft = reply(id) else { return }
+        open(draft.replyLink ?? URL(string: draft.post.url))
+        if draft.status == .open { setReplyStatus(id, .posted) }
+    }
+
+    func sendPostToX(_ id: PostDraft.ID) {
+        guard let draft = post(id) else { return }
+        open(draft.composeLink)
+        if draft.status == .open { setPostStatus(id, .posted) }
     }
 
     func copySelected() {

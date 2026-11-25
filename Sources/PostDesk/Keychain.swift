@@ -28,6 +28,7 @@ enum Keychain {
         ]
         SecItemDelete(query as CFDictionary)
         let value = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        if account == anthropic { UserDefaults.standard.set(!value.isEmpty, forKey: "setup.hasKey") }
         guard !value.isEmpty else { return }
         var add = query
         add[kSecValueData as String] = Data(value.utf8)

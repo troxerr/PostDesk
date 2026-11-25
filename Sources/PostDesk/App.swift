@@ -38,6 +38,40 @@ struct PostDeskApp: App {
                 .themed()
                 .noInitialFocus()
         }
+
+        // A menu bar icon: draft from anywhere without opening the window first.
+        MenuBarExtra("PostDesk", systemImage: "text.bubble") {
+            MenuBarContent(model: model)
+        }
+    }
+}
+
+struct MenuBarContent: View {
+    let model: AppModel
+    @Environment(\.openWindow) private var openWindow
+
+    var body: some View {
+        Button("Draft a Reply from the Clipboard") {
+            model.page = .replies
+            model.pasteFromClipboard()
+            show()
+        }
+        .disabled(model.isBusy)
+        Button("Draft This Week's Posts") {
+            model.draftWeek()
+            show()
+        }
+        .disabled(model.isBusy)
+        Divider()
+        Text("\(model.openReplyCount) replies and \(model.openPostCount) posts to go")
+        Button("Open PostDesk") { show() }
+        Divider()
+        Button("Quit PostDesk") { NSApplication.shared.terminate(nil) }
+    }
+
+    private func show() {
+        openWindow(id: "main")
+        NSApp.activate(ignoringOtherApps: true)
     }
 }
 
@@ -47,8 +81,11 @@ struct DeskCommands: Commands {
     var body: some Commands {
         SidebarCommands()
         CommandGroup(replacing: .newItem) {
-            Button("Paste Posts…") { model.showsPasteSheet = true }
+            Button("Paste and Draft") { model.pasteFromClipboard() }
                 .keyboardShortcut("v", modifiers: [.command, .shift])
+                .disabled(model.isBusy)
+            Button("Paste Posts…") { model.showsPasteSheet = true }
+                .keyboardShortcut("v", modifiers: [.command, .option])
             Button("Fetch Posts from X") { model.fetchFromX() }
                 .keyboardShortcut("f", modifiers: [.command, .shift])
                 .disabled(model.isBusy)

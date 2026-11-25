@@ -48,6 +48,7 @@ enum SelfTest {
 
         await replies(persona: persona, client: client)
         await posts(persona: persona, client: client, repos: env["SELFTEST_REPOS"]?.split(separator: ":").map(String.init))
+        await links(client: client, persona: persona)
         storeRoundTrip(URL(fileURLWithPath: store))
 
         print("\n## Result\n")
@@ -143,6 +144,20 @@ enum SelfTest {
             }
         } catch {
             failures.append("writing posts: \(error.localizedDescription)")
+        }
+    }
+
+    /// A bare link, read through X's embed endpoint. Uses a public post; skipped when offline or unreadable.
+    private static func links(client: ClaudeClient, persona: Persona) async {
+        print("## Link only\n")
+        let link = ProcessInfo.processInfo.environment["SELFTEST_LINK"] ?? "https://x.com/X/status/1"
+        check(InboxParser.bareLinks(in: link).count == 1, "a bare post link is recognized")
+        do {
+            let post = try await OEmbed().post(for: link)
+            print("Read \(post.author): \(post.text.prefix(120))\n")
+            check(!post.text.isEmpty, "the post's text was read from its link")
+        } catch {
+            notes.append("Couldn't read the sample link (\(link)); set SELFTEST_LINK to a public post's link to test it.")
         }
     }
 

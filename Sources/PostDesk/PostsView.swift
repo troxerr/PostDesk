@@ -10,11 +10,13 @@ struct PostsView: View {
                 ContentUnavailableView {
                     Label("No Post Drafts", systemImage: "square.and.pencil")
                 } description: {
-                    Text(model.persona.repoPaths.isEmpty
+                    Text(!model.hasKey
+                         ? "Add your Anthropic API key in Settings > Keys first."
+                         : model.persona.repoPaths.isEmpty
                          ? "Add your git repositories in Settings > Sources. PostDesk writes the week's posts from your real commits."
                          : "Draft this week's posts from your recent commits.")
                 } actions: {
-                    if model.persona.repoPaths.isEmpty {
+                    if model.persona.repoPaths.isEmpty || !model.hasKey {
                         SettingsLink { Text("Open Settings…") }
                     } else {
                         Button("Draft This Week's Posts") { model.draftWeek() }
@@ -91,9 +93,9 @@ struct PostRow: View {
                     .help("Ask Claude for a new version with the same facts (Command-Shift-R)")
                     .disabled(model.isBusy)
                 Button("Copy") { model.copy(draft.text) }
-                Button("Post on X") { model.open(draft.composeLink) }
+                Button("Post on X") { model.sendPostToX(draft.id) }
                     .buttonStyle(.borderedProminent)
-                    .help("Opens X's composer with this text. You attach media and press Post.")
+                    .help("Opens X's composer with this text and files the draft as posted. You attach media and press Post. Restore brings it back.")
             }
             .font(.callout)
         }

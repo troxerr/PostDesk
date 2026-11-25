@@ -14,6 +14,9 @@ Drafts leave the app only as an `x.com/intent/post` link that opens X's composer
 
 ## How it works
 
+- `OEmbed` reads a post from just its link, through X's public embed endpoint (no account, no scraping).
+  `AppModel.addPosts` takes pasted text, links, or drops, and can draft right away. Opening a draft on X files it
+  as posted (Restore undoes it). A menu bar extra drafts from the clipboard without opening the window.
 - `PostDeskKit/InboxParser` reads pasted posts (link, optional `by @handle`, text, blocks split by `---`).
   `XSearch` is the optional read-only X API v2 recent search with the user's bearer token.
 - `ReplyDrafter` sends one post at a time to Claude (`ClaudeClient`, raw HTTP Messages API with a JSON

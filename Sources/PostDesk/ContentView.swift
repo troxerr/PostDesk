@@ -43,6 +43,15 @@ struct ContentView: View {
         .sheet(isPresented: $model.showsPasteSheet) {
             PasteSheet(model: model)
         }
+        // Drop a link or selected text from the browser onto the window.
+        .dropDestination(for: String.self) { items, _ in
+            model.addPosts(from: items.joined(separator: "\n---\n"), draft: true)
+            return true
+        }
+        .dropDestination(for: URL.self) { urls, _ in
+            model.addPosts(from: urls.map(\.absoluteString).joined(separator: "\n"), draft: true)
+            return true
+        }
         .alert("PostDesk", isPresented: Binding(get: { model.errorMessage != nil }, set: { if !$0 { model.errorMessage = nil } })) {
             Button("OK") { model.errorMessage = nil }
         } message: {
@@ -58,10 +67,12 @@ struct PasteSheet: View {
     @State private var text = ""
     @FocusState private var focused: Bool
 
+    private var count: Int { InboxParser.parse(text).count + InboxParser.bareLinks(in: text).count }
+
     var body: some View {
         VStack(alignment: .leading, spacing: Space.md) {
             Text("Paste Posts").font(.headline)
-            Text("Put each post's link on its own line, then an optional \"by @handle\" line, then the text. Separate posts with a line of ---.")
+            Text("Paste post links, one per line, and PostDesk reads them from X. Or paste a link with the post's text under it, and a line of --- between posts.")
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
             TextEditor(text: $text)
@@ -69,17 +80,22 @@ struct PasteSheet: View {
                 .focused($focused)
                 .frame(minHeight: 240)
             HStack {
-                Text("\(InboxParser.parse(text).count) posts").foregroundStyle(.secondary)
+                Text(count == 1 ? "1 post" : "\(count) posts").foregroundStyle(.secondary)
                 Spacer()
                 Button("Cancel", role: .cancel) { dismiss() }
                     .keyboardShortcut(.cancelAction)
                 Button("Add to Inbox") {
-                    model.paste(text)
+                    model.addPosts(from: text, draft: false)
+                    dismiss()
+                }
+                .disabled(count == 0)
+                Button("Add and Draft") {
+                    model.addPosts(from: text, draft: true)
                     dismiss()
                 }
                 .keyboardShortcut(.defaultAction)
                 .buttonStyle(.borderedProminent)
-                .disabled(InboxParser.parse(text).isEmpty)
+                .disabled(count == 0)
             }
         }
         .padding(Space.margin)
@@ -87,7 +103,8 @@ struct PasteSheet: View {
         .onAppear {
             focused = true
             // Posts already copied from X fill the sheet, ready to add.
-            if let copied = NSPasteboard.general.string(forType: .string), !InboxParser.parse(copied).isEmpty {
+            if let copied = NSPasteboard.general.string(forType: .string),
+               !InboxParser.parse(copied).isEmpty || !InboxParser.bareLinks(in: copied).isEmpty {
                 text = copied
             }
         }

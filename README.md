@@ -2,7 +2,7 @@
 
 A Mac app that does the safe parts of growing @AST_Labs on X for you, and leaves the parts X bans to you.
 
-- **Replies.** Paste posts you found on X (or fetch them with the official X API). Claude skips the ones
+- **Replies.** Copy a post's link on X (Share > Copy link), press Command-Shift-V, and the reply is drafted. Or drop a link on the window, or use the menu bar icon. You can also paste posts you found on X (or fetch them with the official X API). Claude skips the ones
   not worth answering, scores the rest as leads, and drafts a short reply for each. Edit it, press
   **Reply on X**, and X's own reply box opens with the text filled in. You press Post.
 - **Posts.** Pick your git repositories once. **Draft This Week's Posts** reads the last 7 days of commits
@@ -25,7 +25,8 @@ PostDesk never posts, likes, follows, or sends DMs, and never drives the X websi
 
 | Action | Keys |
 | --- | --- |
-| Paste Posts | Command-Shift-V |
+| Paste and Draft (a post link on your clipboard) | Command-Shift-V |
+| Paste Posts… (a sheet) | Command-Option-V |
 | Fetch Posts from X | Command-Shift-F |
 | Draft Replies | Command-R |
 | Draft This Week's Posts | Command-Shift-D |
