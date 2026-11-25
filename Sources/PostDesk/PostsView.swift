@@ -92,7 +92,7 @@ struct PostRow: View {
                     .disabled(model.isBusy)
                 Button("Copy") { model.copy(draft.text) }
                 Button("Post on X") { model.sendPostToX(draft.id) }
-                    .buttonStyle(.borderedProminent)
+                    .primaryWhen(model.selectedPost == draft.id)
                     .help("Opens X's composer with this text and files the draft as posted. You attach media and press Post. Restore brings it back.")
             }
             .font(.callout)

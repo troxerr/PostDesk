@@ -211,7 +211,9 @@ public struct Persona: Codable, Hashable, Sendable {
       no hashtags. Never explain why something matters or sum up the point after making it.
     - Don't use words like leverage, unlock, elevate, seamless, robust, pivotal, crucial, landscape, delve.
     - Don't list things in threes. Short sentences are fine. A fragment is fine. Uneven is human.
-    - Never sound more excited or more certain than the facts allow.
+    - Never sound more excited or more certain than the facts allow. State a fact about a platform (limits, menu
+      names, retention periods, pricing, features) only when you are sure of it. If you are not, say what to check
+      or ask a question instead. Never invent numbers.
     """
 
     /// The tone and your own rules, as lines for a system prompt.

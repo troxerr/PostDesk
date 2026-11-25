@@ -111,7 +111,7 @@ struct ReplyRow: View {
                     .disabled(model.isBusy)
                 Button("Copy") { model.copy(draft.reply) }
                 Button("Reply on X") { model.sendReplyToX(draft.id) }
-                    .buttonStyle(.borderedProminent)
+                    .primaryWhen(model.selectedReply == draft.id)
                     .help("Opens X's reply box with this text and files the draft as posted. You press Post. Restore brings it back.")
             }
             .font(.callout)
@@ -155,6 +155,14 @@ struct DraftEditor: View {
             .frame(minHeight: minHeight)
             .background(.background, in: RoundedRectangle(cornerRadius: 6, style: .continuous))
             .overlay(RoundedRectangle(cornerRadius: 6, style: .continuous).strokeBorder(.separator, lineWidth: 1))
+    }
+}
+
+extension View {
+    /// The blue button on the selected card only, so a list of cards has one primary action.
+    @ViewBuilder
+    func primaryWhen(_ selected: Bool) -> some View {
+        if selected { buttonStyle(.borderedProminent) } else { buttonStyle(.bordered) }
     }
 }
 

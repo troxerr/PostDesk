@@ -80,6 +80,8 @@ public struct ReplyDrafter: Sendable {
         if let end = reply.firstRange(of: /"\s*\}\s*$/) {
             reply = String(reply[..<end.lowerBound])
         }
+        // …or markup copied from an embedded post, like `<br>` or `</br>`.
+        reply = reply.replacing(/<\/?[A-Za-z][^>]*>/, with: "")
         return reply
     }
 

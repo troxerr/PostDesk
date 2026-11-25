@@ -246,6 +246,8 @@ final class AppModel {
         guard let index = state.replies.firstIndex(where: { $0.id == id }) else { return }
         state.replies[index].status = status
         save()
+        // Move on to the next draft instead of leaving nothing selected.
+        if selectedReply == id, !visibleReplies.contains(where: { $0.id == id }) { selectedReply = visibleReplies.first?.id }
     }
 
     // MARK: - Posts
@@ -311,6 +313,7 @@ final class AppModel {
         guard let index = state.posts.firstIndex(where: { $0.id == id }) else { return }
         state.posts[index].status = status
         save()
+        if selectedPost == id, !visiblePosts.contains(where: { $0.id == id }) { selectedPost = visiblePosts.first?.id }
     }
 
     // MARK: - Selection (menu bar actions)

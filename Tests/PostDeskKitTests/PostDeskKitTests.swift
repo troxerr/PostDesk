@@ -463,3 +463,15 @@ struct HumanVoiceTests {
         #expect(String(decoding: transport.requests[1].httpBody!, as: UTF8.self).contains("reads like a chatbot"))
     }
 }
+
+@Suite("Markup")
+struct MarkupTests {
+    @Test func strayHTMLIsRemoved() {
+        #expect(ReplyDrafter.trimmed("Highlights don't expire.</br>") == "Highlights don't expire.")
+        #expect(ReplyDrafter.trimmed("Use a < b and c > d") == "Use a < b and c > d")
+    }
+
+    @Test func promptsAskForSureFactsOnly() {
+        #expect(Persona.humanVoice.contains("only when you are sure"))
+    }
+}
