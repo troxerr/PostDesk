@@ -475,3 +475,13 @@ struct MarkupTests {
         #expect(Persona.humanVoice.contains("only when you are sure"))
     }
 }
+
+@Suite("More tells")
+struct MoreTellsTests {
+    @Test func findsClosersAndInventedEffort() {
+        #expect(Tells.find(in: "It asks first. Nobody wants an update landing mid stream.").contains("a closing line that explains why it matters"))
+        #expect(Tells.find(in: "Chat timestamps beat scrubbing video. Try it.").contains("a one-line saying as an opener"))
+        #expect(Tells.find(in: "Recovers crashed recordings. Took a few days of breaking it on purpose.").contains("an effort claim the commits may not support"))
+        #expect(Tells.find(in: "The download took 3 minutes on my connection.").isEmpty)
+    }
+}

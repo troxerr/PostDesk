@@ -20,6 +20,12 @@ public enum Tells {
             text.contains(/\b(delve|game-?changer|leverage|unlock|elevate|seamless(ly)?|robust|tapestry|testament|pivotal|crucial|landscape|streamline|supercharge|dive into|at the end of the day|let that sink in|take it to the next level)\b/.ignoresCase()))
         add("a closing line that repeats the point", if:
             text.contains(/\b(that'?s the real (win|magic|power)|and that'?s (the point|it|what matters)|that'?s a game)/.ignoresCase()))
+        add("a closing line that explains why it matters", if:
+            text.contains(/\b(nobody wants|no one wants|shouldn't have to|worth (reporting|noting|remembering)|that'?s what matters|and that matters)\b/.ignoresCase()))
+        add("a one-line saying as an opener", if:
+            text.contains(/^[A-Z][A-Za-z' ]{3,40} (beats|wins over|is the best) [A-Za-z' ]{3,30}\./))
+        add("an effort claim the commits may not support", if:
+            text.contains(/\btook (me )?(a few|several|a couple( of)?|\d+|weeks|days)\b[^.]{0,25}\b(days|weeks|months|hours|nights)\b/.ignoresCase()))
         add("emoji", if: text.unicodeScalars.contains { $0.properties.isEmojiPresentation })
         return found
     }
