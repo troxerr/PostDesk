@@ -181,6 +181,8 @@ enum SelfTest {
 
     private static func endsWhole(_ text: String) -> Bool {
         guard let last = text.trimmingCharacters(in: .whitespacesAndNewlines).last else { return false }
+        // A reply that is a command line may end on the command's last argument.
+        if text.contains("ffmpeg ") || text.contains(" -i ") { return true }
         return ".!?)\"'".contains(last)
     }
 

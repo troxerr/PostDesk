@@ -85,6 +85,9 @@ public struct PostWriter: Sendable {
         - Call a change a fix only when it fixes a bug. A new feature is new, not a fix.
         - Say what the streamer gets, not how the code works inside. Leave out internals like licensing
           logic or bucket math unless the post is plainly about what it means for someone streaming.
+        - Skip commits about internal tooling: self-tests, test suites, build scripts, refactors, CI. A viewer
+          or streamer would not care, so never make a post of them.
+        - Posts should keep one concrete detail or a small hook from the commit, not read as a bare changelog line.
         - Every post covers a different change or idea. If the commits can't fill the requested number of
           distinct posts, write about the products' existing features (from their descriptions) or write fewer.
         - Mix the kinds of post: what shipped, how something works, a problem you hit, a small lesson.
