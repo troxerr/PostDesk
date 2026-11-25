@@ -61,8 +61,15 @@ public struct ReplyDrafter: Sendable {
                                  mentionsProduct: result.mentionsProduct, reply: reply))
     }
 
+    /// Now and then the model spills the next JSON field into the reply text,
+    /// like `…in.","relevant":true}`. Cut from the spilled field on.
+    static func withoutSpilledJSON(_ reply: String) -> String {
+        guard let spill = reply.firstRange(of: /"\s*,\s*"(relevant|lead_score|reason|mentions_product|reply)"\s*:/) else { return reply }
+        return String(reply[..<spill.lowerBound])
+    }
+
     static func trimmed(_ reply: String) -> String {
-        let reply = reply.trimmingCharacters(in: .whitespacesAndNewlines)
+        let reply = withoutSpilledJSON(reply).trimmingCharacters(in: .whitespacesAndNewlines)
         guard reply.count > maxReplyLength else { return reply }
         let cut = String(reply.prefix(maxReplyLength))
         // End on a whole sentence when one ends past the halfway point.

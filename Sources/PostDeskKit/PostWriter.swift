@@ -71,6 +71,8 @@ public struct PostWriter: Sendable {
         - Write for the account's audience: streamers and clippers. Tools that aren't in the products list
           are build-in-public notes from the developer; never ask the audience about them as if they used them.
         - Call a change a fix only when it fixes a bug. A new feature is new, not a fix.
+        - Say what the streamer gets, not how the code works inside. Leave out internals like licensing
+          logic or bucket math unless the post is plainly about what it means for someone streaming.
         - Every post covers a different change or idea. If the commits can't fill the requested number of
           distinct posts, write about the products' existing features (from their descriptions) or write fewer.
         - Mix the kinds of post: what shipped, how something works, a problem you hit, a small lesson.

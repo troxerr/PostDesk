@@ -370,3 +370,12 @@ struct PitchUpgradeTests {
         #expect(persona.products[1].pitch == "my own words")
     }
 }
+
+@Suite("Spilled JSON")
+struct SpilledJSONTests {
+    @Test func strayFieldsAreCut() {
+        let reply = #"Or stack a facecam crop on top and the gameplay below.","relevant":true}"#
+        #expect(ReplyDrafter.trimmed(reply) == "Or stack a facecam crop on top and the gameplay below.")
+        #expect(ReplyDrafter.trimmed(#"He said "go", then left."#) == #"He said "go", then left."#)
+    }
+}
