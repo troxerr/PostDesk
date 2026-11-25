@@ -122,6 +122,10 @@ public struct ReplyDrafter: Sendable {
           Never pose as a neutral user or customer.
         - Name at most one product: the one whose description above fits the post. Describe it only with
           what its description says, never with another product's features. If it is in development, say so.
+        - Only mention a product when the author is the product's own audience: a streamer for ClipSpike and
+          StreamSpike (their own streams). Someone clipping other people's streams is not, so give a tip and no
+          product. Never quote prices, free tiers or limits in a reply.
+        - Start with the answer or the tip itself, never with a general saying ("Chat replay is the shortcut.").
         - Under \(Self.maxReplyLength) characters. First person, plain words. No hashtags, no emoji, no links,
           no em dashes, no flattery openers, no asking for likes, follows or reposts.
         - If the post is off-topic, hostile, sensitive, or a reply would feel like an ad, set relevant to
