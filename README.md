@@ -30,6 +30,7 @@ PostDesk never posts, likes, follows, or sends DMs, and never drives the X websi
 | Draft Replies | Command-R |
 | Draft This Week's Posts | Command-Shift-D |
 | Open on X | Command-O |
+| Redraft or Rewrite | Command-Shift-R |
 | Copy Draft | Command-Shift-C |
 | Mark as Posted | Command-Return |
 | Dismiss | Command-Delete |
@@ -39,3 +40,9 @@ PostDesk never posts, likes, follows, or sends DMs, and never drives the X websi
 ## Cost
 
 One Claude call per on-topic post (about a cent or two on `claude-opus-5-5` at low effort), and one call per week of posts.
+
+## Self-test
+
+`APP_STORE=/tmp/postdesk-self.json /Applications/PostDesk.app/Contents/MacOS/PostDesk --selftest`
+drafts replies to four sample posts and writes posts from your repositories with your real key and
+settings, prints them as Markdown, and exits 0 when every check passed. Nothing is posted.

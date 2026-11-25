@@ -87,6 +87,9 @@ struct PostRow: View {
                 } else {
                     Button("Restore") { model.setPostStatus(draft.id, .open) }
                 }
+                Button("Rewrite", systemImage: "arrow.clockwise") { model.rewritePost(draft.id) }
+                    .help("Ask Claude for a new version with the same facts (Command-Shift-R)")
+                    .disabled(model.isBusy)
                 Button("Copy") { model.copy(draft.text) }
                 Button("Post on X") { model.open(draft.composeLink) }
                     .buttonStyle(.borderedProminent)

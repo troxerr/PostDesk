@@ -30,6 +30,20 @@ public struct PostWriter: Sendable {
         return try Self.drafts(from: data)
     }
 
+    /// Writes one new version of a post with the same facts.
+    public func rewrite(_ draft: PostDraft) async throws -> PostDraft? {
+        let user = """
+        Write 1 post. It replaces this draft, with the same facts and a different angle or opening:
+
+        \(draft.text)
+
+        It was based on: \(draft.basedOn)
+        """
+        let data = try await client.structured(system: systemPrompt, user: user, schema: Self.schema,
+                                               effort: "medium", maxTokens: 8000)
+        return try Self.drafts(from: data).first
+    }
+
     static func drafts(from data: Data?) throws -> [PostDraft] {
         guard let data else { return [] }
         let result = try JSONDecoder().decode(Result.self, from: data)

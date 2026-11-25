@@ -91,6 +91,7 @@ struct WritingSettings: View {
             } footer: {
                 Text("Used for both replies and posts. Your own rules win over the defaults.").foregroundStyle(.secondary)
             }
+            ReminderSection()
             Section("Weekly posts") {
                 Stepper("\(persona.postsPerWeek) posts a week", value: $persona.postsPerWeek, in: 1...10)
                 Picker("Read commits from", selection: $persona.commitDays) {
@@ -102,6 +103,23 @@ struct WritingSettings: View {
         }
         .formStyle(.grouped)
         .fitsContent()
+    }
+}
+
+/// The daily nudge to post replies by hand.
+struct ReminderSection: View {
+    @Bindable private var reminder = Reminder.shared
+
+    var body: some View {
+        Section {
+            Toggle("Daily reminder", isOn: $reminder.isOn)
+            DatePicker("Remind me at", selection: $reminder.time, displayedComponents: .hourAndMinute)
+                .disabled(!reminder.isOn)
+        } header: {
+            Text("Replies")
+        } footer: {
+            Text("A notification each day to post your replies. Replies stay manual, so X never sees a bot.").foregroundStyle(.secondary)
+        }
     }
 }
 

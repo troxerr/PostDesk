@@ -4,8 +4,20 @@ import SwiftUI
 // PostDesk
 //   PostDesk                    the app
 //   APP_STORE=<file> PostDesk   use another desk file (tests, experiments)
+//   APP_STORE=/tmp/x.json PostDesk --selftest   draft real replies and posts with your key, print them, quit (SelfTest.swift)
 
 @main
+enum Launcher {
+    static func main() {
+        if CommandLine.arguments.contains("--selftest") {
+            Task { exit(await SelfTest.run()) }
+            dispatchMain()
+        } else {
+            PostDeskApp.main()
+        }
+    }
+}
+
 struct PostDeskApp: App {
     @State private var model = AppModel()
 
@@ -15,6 +27,7 @@ struct PostDeskApp: App {
                 .themed()
                 .noInitialFocus()
                 .frame(minWidth: 760, minHeight: 520)
+                .onAppear { Reminder.shared.schedule() }
         }
         .defaultSize(width: 1040, height: 720)
         .windowToolbarStyle(.unified)
@@ -63,6 +76,9 @@ struct DeskCommands: Commands {
             Button("Open on X") { model.openSelectedOnX() }
                 .keyboardShortcut("o")
                 .disabled(!model.hasSelection)
+            Button("Redraft") { model.redraftSelected() }
+                .keyboardShortcut("r", modifiers: [.command, .shift])
+                .disabled(!model.hasSelection || model.isBusy)
             Button("Copy Draft") { model.copySelected() }
                 .keyboardShortcut("c", modifiers: [.command, .shift])
                 .disabled(!model.hasSelection)

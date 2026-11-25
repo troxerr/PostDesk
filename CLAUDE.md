@@ -23,7 +23,8 @@ Drafts leave the app only as an `x.com/intent/post` link that opens X's composer
 - `DeskStore` keeps the inbox, drafts, skips, and every seen URL in `~/Library/Application Support/PostDesk/desk.json`
   (`APP_STORE=<file>` overrides it). The persona (name, products, keywords, repos) is in UserDefaults.
   API keys are in the keychain (`Keychain.swift`), never in files.
-- `AppModel` runs every action; `ContentView` has the Replies and Posts pages.
+- `AppModel` runs every action; `ContentView` has the Replies and Posts pages. Redraft and Draft Anyway pass a
+  one-off note to `ReplyDrafter.draft(_:note:)`; Rewrite is `PostWriter.rewrite`. `Reminder` is the daily notification.
 - Customization: Settings > Writing (`Tone`, your own rules, posts per week, commit window), all part of
   `Persona` and added to both prompts by `Persona.styleRules`; Settings > Appearance (light, dark, or automatic,
   and the accent color, `UI/Theme.swift`).
@@ -41,6 +42,8 @@ Drafts leave the app only as an `x.com/intent/post` link that opens X's composer
 - Build and install: `./build.sh` (`--open` restarts the app). Fix every warning.
 - Unit tests: `swift test --scratch-path ~/Library/Developer/PostDesk/test-build`. They run offline with a fake transport.
 - Never test against the real desk file: set `APP_STORE=/tmp/postdesk-test.json`.
+- Live check with the real key: `APP_STORE=/tmp/postdesk-self.json /Applications/PostDesk.app/Contents/MacOS/PostDesk --selftest`
+  (`SelfTest.swift`). It prints the drafts as Markdown and exits 0 when every check passes. Read the drafts, not only the result.
 
 ## Design rules
 

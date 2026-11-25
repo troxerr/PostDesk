@@ -6,7 +6,7 @@ struct RepliesView: View {
 
     var body: some View {
         Group {
-            if model.visibleReplies.isEmpty {
+            if model.visibleReplies.isEmpty && model.state.skipped.isEmpty {
                 ContentUnavailableView {
                     Label("No Reply Drafts", systemImage: "bubble.left.and.bubble.right")
                 } description: {
@@ -23,9 +23,27 @@ struct RepliesView: View {
                 }
             } else {
                 List(selection: $model.selectedReply) {
-                    ForEach(model.visibleReplies) { draft in
-                        ReplyRow(model: model, draft: draft)
-                            .tag(draft.id)
+                    Section {
+                        ForEach(model.visibleReplies) { draft in
+                            ReplyRow(model: model, draft: draft)
+                                .tag(draft.id)
+                        }
+                    } footer: {
+                        if model.visibleReplies.isEmpty {
+                            Text("No drafts to post. Paste more posts, or draft one of the skipped posts below.")
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    if !model.state.skipped.isEmpty {
+                        Section {
+                            DisclosureGroup("Skipped (\(model.state.skipped.count))") {
+                                ForEach(model.recentSkipped) { skipped in
+                                    SkippedRow(model: model, skipped: skipped)
+                                }
+                                Button("Forget Skipped Posts") { model.forgetSkipped() }
+                                    .buttonStyle(.link)
+                            }
+                        }
                     }
                 }
             }
@@ -81,6 +99,9 @@ struct ReplyRow: View {
                 } else {
                     Button("Restore") { model.setReplyStatus(draft.id, .open) }
                 }
+                Button("Redraft", systemImage: "arrow.clockwise") { model.redraftReply(draft.id) }
+                    .help("Ask Claude for a different reply (Command-Shift-R)")
+                    .disabled(model.isBusy)
                 Button("Copy") { model.copy(draft.reply) }
                 Button("Reply on X") { model.open(draft.replyLink ?? URL(string: draft.post.url)) }
                     .buttonStyle(.borderedProminent)
@@ -89,6 +110,28 @@ struct ReplyRow: View {
             .font(.callout)
         }
         .padding(.vertical, Space.sm)
+    }
+}
+
+/// A post Claude passed on, with why, and a way to answer it anyway.
+struct SkippedRow: View {
+    let model: AppModel
+    let skipped: SkippedPost
+
+    var body: some View {
+        HStack(alignment: .firstTextBaseline, spacing: Space.sm) {
+            VStack(alignment: .leading, spacing: Space.xs) {
+                Text(skipped.post.author.isEmpty ? "Post" : skipped.post.author).font(.callout.weight(.medium))
+                Text(skipped.post.text).foregroundStyle(.secondary).lineLimit(2)
+                Text(skipped.reason).font(.caption).foregroundStyle(.secondary)
+            }
+            Spacer()
+            Button("Open") { model.open(URL(string: skipped.post.url)) }
+            Button("Draft Anyway") { model.draftAnyway(skipped) }
+                .disabled(model.isBusy)
+        }
+        .font(.callout)
+        .padding(.vertical, Space.xs)
     }
 }
 

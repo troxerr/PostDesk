@@ -1,3 +1,4 @@
+import AppKit
 import PostDeskKit
 import SwiftUI
 
@@ -83,6 +84,12 @@ struct PasteSheet: View {
         }
         .padding(Space.margin)
         .frame(width: 560)
-        .onAppear { focused = true }
+        .onAppear {
+            focused = true
+            // Posts already copied from X fill the sheet, ready to add.
+            if let copied = NSPasteboard.general.string(forType: .string), !InboxParser.parse(copied).isEmpty {
+                text = copied
+            }
+        }
     }
 }

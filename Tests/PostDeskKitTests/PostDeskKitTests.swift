@@ -290,3 +290,27 @@ struct CustomizationTests {
         #expect(String(decoding: transport.requests[0].httpBody!, as: UTF8.self).contains("Write 3 posts"))
     }
 }
+
+@Suite("Redraft")
+struct RedraftTests {
+    @Test func noteReachesClaude() async throws {
+        let json = #"{"relevant":true,"lead_score":5,"reason":"ok","mentions_product":false,"reply":"Another angle."}"#
+        let transport = FakeTransport(body: messageBody(json))
+        let drafter = ReplyDrafter(client: ClaudeClient(apiKey: "k", transport: transport), persona: .astLabs)
+        _ = try await drafter.draft(samplePost, note: ReplyDrafter.redraftNote(replacing: "First try."))
+        let sent = String(decoding: transport.requests[0].httpBody!, as: UTF8.self)
+        #expect(sent.contains("First try."))
+        #expect(sent.contains("Note from Austin"))
+    }
+
+    @Test func rewriteKeepsTheFacts() async throws {
+        let json = #"{"posts":[{"text":"New angle on the same fix.","needs_media":false,"based_on":"f0ccefb"}]}"#
+        let transport = FakeTransport(body: messageBody(json))
+        let writer = PostWriter(client: ClaudeClient(apiKey: "k", transport: transport), persona: .astLabs)
+        let old = PostDraft(text: "Old text about the fix.", basedOn: "f0ccefb", needsMedia: false)
+        let new = try await writer.rewrite(old)
+        #expect(new?.text == "New angle on the same fix.")
+        let sent = String(decoding: transport.requests[0].httpBody!, as: UTF8.self)
+        #expect(sent.contains("Old text about the fix."))
+    }
+}

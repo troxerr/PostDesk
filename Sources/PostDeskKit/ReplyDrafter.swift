@@ -24,11 +24,20 @@ public struct ReplyDrafter: Sendable {
         return words.isEmpty || words.contains { post.text.localizedCaseInsensitiveContains($0) }
     }
 
-    public func draft(_ post: SourcePost) async throws -> Outcome {
-        let user = "Post by \(post.author.isEmpty ? "unknown" : post.author) (\(post.url)):\n\n\(post.text)"
+    /// `note` is an extra request from the account owner for this one post,
+    /// like a redraft (`Self.redraftNote`) or a reply they insist on (`Self.insistNote`).
+    public func draft(_ post: SourcePost, note: String? = nil) async throws -> Outcome {
+        var user = "Post by \(post.author.isEmpty ? "unknown" : post.author) (\(post.url)):\n\n\(post.text)"
+        if let note, !note.isEmpty { user += "\n\nNote from \(persona.name): \(note)" }
         let data = try await client.structured(system: systemPrompt, user: user, schema: Self.schema, effort: "low")
         return try Self.outcome(from: data, post: post)
     }
+
+    public static func redraftNote(replacing old: String) -> String {
+        "Write a different reply from this earlier draft, with another angle or detail: \(old)"
+    }
+
+    public static let insistNote = "I want to reply to this one. Set relevant to true and write the most useful reply you can, without mentioning the products unless it truly fits."
 
     static func outcome(from data: Data?, post: SourcePost) throws -> Outcome {
         guard let data else { return .skipped(SkippedPost(post: post, reason: "Claude declined to answer this one.")) }

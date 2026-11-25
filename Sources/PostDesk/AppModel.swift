@@ -44,12 +44,14 @@ final class AppModel {
     init() {
         store = DeskStore(url: Self.storeURL())
         state = store.load()
-        if let data = UserDefaults.standard.data(forKey: Self.personaKey),
-           let saved = try? JSONDecoder().decode(Persona.self, from: data) {
-            persona = saved
-        } else {
-            persona = .astLabs
-        }
+        persona = Self.loadPersona()
+    }
+
+    /// The saved settings from Settings > Account, Writing and Sources.
+    static func loadPersona() -> Persona {
+        guard let data = UserDefaults.standard.data(forKey: personaKey),
+              let saved = try? JSONDecoder().decode(Persona.self, from: data) else { return .astLabs }
+        return saved
     }
 
     /// ~/Library/Application Support/PostDesk/desk.json, or APP_STORE for tests.
@@ -118,8 +120,7 @@ final class AppModel {
             errorMessage = "The inbox is empty. Paste posts from X first (Command-Shift-V)."
             return
         }
-        let drafter = ReplyDrafter(client: ClaudeClient(apiKey: Keychain.read(Keychain.anthropic), model: persona.model),
-                                   persona: persona)
+        let drafter = makeDrafter()
         let limit = max(persona.dailyMax, 1)
         run("Drafting replies…") { model in
             var drafted = 0
@@ -141,6 +142,54 @@ final class AppModel {
             }
             model.page = .replies
         }
+    }
+
+    /// Asks Claude for a different reply to the same post.
+    func redraftReply(_ id: ReplyDraft.ID) {
+        guard let old = reply(id) else { return }
+        let drafter = makeDrafter()
+        run("Redrafting the reply…") { model in
+            let outcome = try await drafter.draft(old.post, note: ReplyDrafter.redraftNote(replacing: old.reply))
+            guard case .draft(let new) = outcome, let index = model.state.replies.firstIndex(where: { $0.id == id }) else {
+                model.errorMessage = "Claude didn't write another reply for this post."
+                return
+            }
+            model.state.replies[index].reply = new.reply
+            model.state.replies[index].reason = new.reason
+            model.state.replies[index].mentionsProduct = new.mentionsProduct
+            model.save()
+        }
+    }
+
+    /// Drafts a reply to a post Claude skipped, because you want to answer it anyway.
+    func draftAnyway(_ skipped: SkippedPost) {
+        let drafter = makeDrafter()
+        run("Drafting a reply…") { model in
+            let outcome = try await drafter.draft(skipped.post, note: ReplyDrafter.insistNote)
+            guard case .draft(let draft) = outcome else {
+                model.errorMessage = "Claude still didn't write a reply for this post. You can copy it and answer by hand."
+                return
+            }
+            model.state.skipped.removeAll { $0.id == skipped.id }
+            model.state.replies.append(draft)
+            model.selectedReply = draft.id
+            model.save()
+        }
+    }
+
+    func forgetSkipped() {
+        state.skipped.removeAll()
+        save()
+    }
+
+    var recentSkipped: [SkippedPost] { Array(state.skipped.suffix(30).reversed()) }
+
+    private func makeDrafter() -> ReplyDrafter {
+        ReplyDrafter(client: ClaudeClient(apiKey: Keychain.read(Keychain.anthropic), model: persona.model), persona: persona)
+    }
+
+    private func makeWriter() -> PostWriter {
+        PostWriter(client: ClaudeClient(apiKey: Keychain.read(Keychain.anthropic), model: persona.model), persona: persona)
     }
 
     func reply(_ id: ReplyDraft.ID) -> ReplyDraft? {
@@ -168,8 +217,7 @@ final class AppModel {
             errorMessage = "Add the folders of your git repositories in Settings > Sources, so posts come from real commits."
             return
         }
-        let writer = PostWriter(client: ClaudeClient(apiKey: Keychain.read(Keychain.anthropic), model: persona.model),
-                                persona: persona)
+        let writer = makeWriter()
         run("Reading this week's commits…") { model in
             var commits: [Commit] = []
             for path in paths {
@@ -185,6 +233,21 @@ final class AppModel {
             model.state.posts += drafts
             model.save()
             model.page = .posts
+        }
+    }
+
+    /// Asks Claude for a new version of a post with the same facts.
+    func rewritePost(_ id: PostDraft.ID) {
+        guard let old = post(id) else { return }
+        let writer = makeWriter()
+        run("Rewriting the post…") { model in
+            guard let new = try await writer.rewrite(old), let index = model.state.posts.firstIndex(where: { $0.id == id }) else {
+                model.errorMessage = "Claude didn't write a new version of this post."
+                return
+            }
+            model.state.posts[index].text = new.text
+            model.state.posts[index].needsMedia = new.needsMedia
+            model.save()
         }
     }
 
@@ -232,6 +295,14 @@ final class AppModel {
         switch page {
         case .replies: if let draft = selectedReply.flatMap(reply) { copy(draft.reply) }
         case .posts: if let draft = selectedPost.flatMap(post) { copy(draft.text) }
+        case nil: break
+        }
+    }
+
+    func redraftSelected() {
+        switch page {
+        case .replies: if let id = selectedReply { redraftReply(id) }
+        case .posts: if let id = selectedPost { rewritePost(id) }
         case nil: break
         }
     }
